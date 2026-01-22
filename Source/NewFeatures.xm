@@ -203,26 +203,6 @@ static NSInteger YTMUint(NSString *key) {
         }
     }
 }
-    YTPlayerResponse *response = self.playerResponse;
-    if (!response) return;
-    
-    // Check engagement panel or like status
-    id videoDetails = [response.playerData valueForKey:@"videoDetails"];
-    if (videoDetails && [videoDetails respondsToSelector:@selector(likeStatus)]) {
-        NSInteger likeStatus = [[videoDetails valueForKey:@"likeStatus"] integerValue];
-        if (likeStatus == 2) { // Disliked
-            dispatch_async(dispatch_get_main_queue(), ^{
-                [[%c(YTMToastController) alloc] showMessage:LOC(@"SKIPPED_DISLIKED")];
-            });
-            
-            // Skip to next using runtime
-            SEL nextVideoSel = NSSelectorFromString(@"nextVideo");
-            if (nextVideoSel && class_getInstanceMethod(object_getClass(self), nextVideoSel)) {
-                ((void (*)(id, SEL))objc_msgSend)(self, nextVideoSel);
-            }
-        }
-    }
-}
 %end
 
 #pragma mark - Feature 3: Import/Export Settings
