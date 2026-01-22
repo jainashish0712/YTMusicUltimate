@@ -1,7 +1,9 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
+#import <AVFoundation/AVFoundation.h>
 #import "Headers/YTPlayerViewController.h"
 #import "Headers/YTMWatchViewController.h"
+#import "Headers/YTPlayabilityResolutionUserActionUIController.h"
 
 static BOOL YTMU(NSString *key) {
     NSDictionary *YTMUltimateDict = [[NSUserDefaults standardUserDefaults] dictionaryForKey:@"YTMUltimate"];
@@ -23,7 +25,7 @@ static BOOL YTMU(NSString *key) {
 @end
 
 @interface YTIUrlEndpoint : NSObject
-@property (nonatomic, copy) NSString *url;
+@property (nonatomic, strong) NSURL *url;
 @end
 
 // Hook to ensure Recap endpoints are not blocked
@@ -42,8 +44,9 @@ static BOOL YTMU(NSString *key) {
     }
     
     if ([self urlEndpoint]) {
-        NSString *url = [[self urlEndpoint] url];
-        if (url && ([url containsString:@"recap"] || [url containsString:@"Recap"])) {
+        NSURL *url = [[self urlEndpoint] url];
+        NSString *urlString = [url absoluteString];
+        if (urlString && ([urlString containsString:@"recap"] || [urlString containsString:@"Recap"])) {
             %orig;
             return;
         }
@@ -124,13 +127,21 @@ static BOOL YTMU(NSString *key) {
     
     if (YTMU(@"YTMUltimateIsEnabled")) {
         NSDictionary *info = notification.userInfo;
-        NSUInteger type = [info[AVAudioSessionInterruptionTypeKey] unsignedIntegerValue];
+        NSString *typeKey = @"AVAudioSessionInterruptionTypeKey";
+        NSNumber *typeValue = info[typeKey];
         
-        if (type == AVAudioSessionInterruptionTypeEnded) {
-            // Ensure proper audio session reactivation
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-                [[AVAudioSession sharedInstance] setActive:YES error:nil];
-            });
+        if (typeValue) {
+            NSUInteger type = [typeValue unsignedIntegerValue];
+            // AVAudioSessionInterruptionTypeEnded = 1
+            if (type == 1) {
+                // Ensure proper audio session reactivation
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                    AVAudioSession *session = [AVAudioSession sharedInstance];
+                    if ([session respondsToSelector:@selector(setActive:error:)]) {
+                        [session setActive:YES error:nil];
+                    }
+                });
+            }
         }
     }
 }
@@ -152,7 +163,10 @@ static BOOL YTMU(NSString *key) {
 - (void)playItemAtIndex:(NSUInteger)index {
     if (YTMU(@"YTMUltimateIsEnabled")) {
         // Ensure audio session is active
-        [[AVAudioSession sharedInstance] setActive:YES error:nil];
+        AVAudioSession *session = [AVAudioSession sharedInstance];
+        if ([session respondsToSelector:@selector(setActive:error:)]) {
+            [session setActive:YES error:nil];
+        }
     }
     %orig;
 }
@@ -166,7 +180,12 @@ static BOOL YTMU(NSString *key) {
     if (YTMU(@"YTMUltimateIsEnabled") && YTMU(@"skipWarning")) {
         // Ensure we properly dismiss any existing alerts first
         dispatch_async(dispatch_get_main_queue(), ^{
-            [self confirmAlertDidPressConfirm];
+            if ([self respondsToSelector:@selector(confirmAlertDidPressConfirm)]) {
+                #pragma clang diagnostic push
+                #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+                [self performSelector:@selector(confirmAlertDidPressConfirm)];
+                #pragma clang diagnostic pop
+            }
         });
     } else {
         %orig;
@@ -178,7 +197,10 @@ static BOOL YTMU(NSString *key) {
     if (YTMU(@"YTMUltimateIsEnabled") && YTMU(@"skipWarning")) {
         // Auto-confirm all warning types
         if ([self respondsToSelector:@selector(confirmAlertDidPressConfirm)]) {
-            [self confirmAlertDidPressConfirm];
+            #pragma clang diagnostic push
+            #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+            [self performSelector:@selector(confirmAlertDidPressConfirm)];
+            #pragma clang diagnostic pop
         }
         return;
     }
@@ -214,7 +236,10 @@ static BOOL YTMU(NSString *key) {
         // Auto-dismiss after a short delay
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
             if ([self respondsToSelector:@selector(confirmButtonTapped:)]) {
-                [self confirmButtonTapped:nil];
+                #pragma clang diagnostic push
+                #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+                [self performSelector:@selector(confirmButtonTapped:) withObject:nil];
+                #pragma clang diagnostic pop
             } else if ([self respondsToSelector:@selector(dismissViewControllerAnimated:completion:)]) {
                 [self dismissViewControllerAnimated:NO completion:nil];
             }
@@ -311,7 +336,10 @@ static BOOL YTMU(NSString *key) {
     if (YTMU(@"YTMUltimateIsEnabled") && YTMU(@"preferAudioVersion")) {
         // Try to get the audio-only version if available
         if ([options respondsToSelector:@selector(setPreferAudioOnly:)]) {
-            [options setPreferAudioOnly:YES];
+            #pragma clang diagnostic push
+            #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+            [options performSelector:@selector(setPreferAudioOnly:) withObject:@YES];
+            #pragma clang diagnostic pop
         }
     }
     %orig;
@@ -404,7 +432,10 @@ static BOOL YTMU(NSString *key) {
     if (YTMU(@"YTMUltimateIsEnabled") && YTMU(@"noAds")) {
         // Skip the ad entirely
         if ([self respondsToSelector:@selector(skipAd)]) {
-            [self skipAd];
+            #pragma clang diagnostic push
+            #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+            [self performSelector:@selector(skipAd)];
+            #pragma clang diagnostic pop
         }
         return;
     }

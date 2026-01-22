@@ -25,11 +25,12 @@
         [categories addObjectsFromArray:@[@"sponsor", @"selfpromo", @"interaction", @"intro", @"outro", @"preview", @"filler"]];
     }
     
-    NSString *categoriesParam = [[NSString stringWithFormat:@"%@", categories] stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
     // Convert array format for API: ["cat1","cat2"] format
-    NSString *categoriesJSON = [NSString stringWithFormat:@"[%@]", [[categories valueForKey:@"description"] componentsJoinedByString:@","]];
-    categoriesJSON = [categoriesJSON stringByReplacingOccurrencesOfString:@"(" withString:@"\""];
-    categoriesJSON = [categoriesJSON stringByReplacingOccurrencesOfString:@")" withString:@"\""];
+    NSMutableArray *quotedCategories = [NSMutableArray array];
+    for (NSString *category in categories) {
+        [quotedCategories addObject:[NSString stringWithFormat:@"\"%@\"", category]];
+    }
+    NSString *categoriesJSON = [NSString stringWithFormat:@"[%@]", [quotedCategories componentsJoinedByString:@","]];
     categoriesJSON = [categoriesJSON stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
 
     NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:[NSString stringWithFormat:@"https://sponsor.ajay.app/api/skipSegments?videoID=%@&categories=%@", self.currentVideoID, categoriesJSON]]];
