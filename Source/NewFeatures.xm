@@ -141,9 +141,13 @@ static BOOL YTMU(NSString *key) {
 - (void)updatePresenceWithTitle:(NSString *)title artist:(NSString *)artist {
     if (!YTMU(@"YTMUltimateIsEnabled") || !YTMU(@"discordRPC")) return;
 
+    // Ensure we have non-nil strings before creating dictionary
+    NSString *safeTitle = title ?: @"";
+    NSString *safeArtist = artist ?: @"";
+    
     NSDictionary *nowPlaying = @{
-        @"title": title ?: @"",
-        @"artist": artist ?: @""
+        @"title": safeTitle,
+        @"artist": safeArtist
     };
 
     [[NSUserDefaults standardUserDefaults]
@@ -159,6 +163,32 @@ static BOOL YTMU(NSString *key) {
 %end
 
 %hook YTPlayerViewController
+- (void)playbackController:(id)controller didActivateVideo:(id)video withPlaybackData:(id)data {
+    %orig;
+    
+    if (YTMU(@"YTMUltimateIsEnabled") && YTMU(@"discordRPC")) {
+        @try {
+            YTPlayerResponse *response = self.playerResponse;
+            if (response && response.playerData) {
+                id videoDetails = response.playerData.videoDetails;
+                if (videoDetails && [videoDetails respondsToSelector:@selector(valueForKey:)]) {
+                    id titleObj = [videoDetails valueForKey:@"title"];
+                    id authorObj = [videoDetails valueForKey:@"author"];
+                    
+                    NSString *title = ([titleObj isKindOfClass:[NSString class]]) ? titleObj : nil;
+                    NSString *author = ([authorObj isKindOfClass:[NSString class]]) ? authorObj : nil;
+                    
+                    // Update Discord RPC with safe values
+                    [[%c(YTMUDiscordRPC) sharedInstance] updatePresenceWithTitle:title artist:author];
+                }
+            }
+        } @catch (NSException *exception) {
+            // Silently handle any exceptions when accessing video details
+            NSLog(@"[YTMusicUltimate] Error updating Discord RPC: %@", exception);
+        }
+    }
+}
+
 - (void)playbackControllerDidStopPlaying:(id)controller {
     %orig;
 
@@ -199,25 +229,30 @@ static BOOL YTMU(NSString *key) {
 %end
 
 %ctor {
-    NSMutableDictionary *dict =
-        [NSMutableDictionary dictionaryWithDictionary:
-            [[NSUserDefaults standardUserDefaults]
-                dictionaryForKey:@"YTMUltimate"] ?: @{}];
+    @try {
+        NSMutableDictionary *dict =
+            [NSMutableDictionary dictionaryWithDictionary:
+                [[NSUserDefaults standardUserDefaults]
+                    dictionaryForKey:@"YTMUltimate"] ?: @{}];
 
-    NSArray *keys = @[
-        @"alwaysHighQuality",
-        @"skipDislikedSongs",
-        @"discordRPC",
-        @"autoClearCacheOnClose"
-    ];
+        NSArray *keys = @[
+            @"alwaysHighQuality",
+            @"skipDislikedSongs",
+            @"discordRPC",
+            @"autoClearCacheOnClose"
+        ];
 
-    for (NSString *key in keys) {
-        if (!dict[key]) {
-            dict[key] = @([key isEqual:@"autoClearCacheOnClose"]);
+        for (NSString *key in keys) {
+            // Safety check: ensure key is not nil before using it
+            if (key && [key isKindOfClass:[NSString class]] && !dict[key]) {
+                dict[key] = @([key isEqualToString:@"autoClearCacheOnClose"]);
+            }
         }
-    }
 
-    [[NSUserDefaults standardUserDefaults]
-        setObject:dict
-           forKey:@"YTMUltimate"];
+        [[NSUserDefaults standardUserDefaults]
+            setObject:dict
+               forKey:@"YTMUltimate"];
+    } @catch (NSException *exception) {
+        NSLog(@"[YTMusicUltimate] Error in constructor: %@", exception);
+    }
 }
