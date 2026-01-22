@@ -101,14 +101,6 @@ static NSInteger YTMUint(NSString *key) {
 #pragma mark - Feature 2: Skip Disliked Songs
 
 %hook YTMQueueController
-- (void)advanceToNextItem {
-    %orig;
-    
-    if (YTMU(@"YTMUltimateIsEnabled") && YTMU(@"skipDislikedSongs")) {
-        [self checkAndSkipDislikedSong];
-    }
-}
-
 %new
 - (void)checkAndSkipDislikedSong {
     SEL valueForKeySel = @selector(valueForKey:);
@@ -139,15 +131,52 @@ static NSInteger YTMUint(NSString *key) {
         });
     }
 }
+
+- (void)advanceToNextItem {
+    %orig;
+    
+    if (YTMU(@"YTMUltimateIsEnabled") && YTMU(@"skipDislikedSongs")) {
+        SEL checkSel = @selector(checkAndSkipDislikedSong);
+        if (class_getInstanceMethod(object_getClass(self), checkSel)) {
+            ((void (*)(id, SEL))objc_msgSend)(self, checkSel);
+        }
+    }
+}
 %end
 
 // Also check when a song starts playing
 %hook YTPlayerViewController
+%new
+- (void)checkIfDislikedAndSkip {
+    YTPlayerResponse *response = self.playerResponse;
+    if (!response) return;
+    
+    // Check engagement panel or like status
+    id videoDetails = [response.playerData valueForKey:@"videoDetails"];
+    if (videoDetails && [videoDetails respondsToSelector:@selector(likeStatus)]) {
+        NSInteger likeStatus = [[videoDetails valueForKey:@"likeStatus"] integerValue];
+        if (likeStatus == 2) { // Disliked
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [[%c(YTMToastController) alloc] showMessage:LOC(@"SKIPPED_DISLIKED")];
+            });
+            
+            // Skip to next using runtime
+            SEL nextVideoSel = NSSelectorFromString(@"nextVideo");
+            if (nextVideoSel && class_getInstanceMethod(object_getClass(self), nextVideoSel)) {
+                ((void (*)(id, SEL))objc_msgSend)(self, nextVideoSel);
+            }
+        }
+    }
+}
+
 - (void)playbackController:(id)controller didActivateVideo:(id)video withPlaybackData:(id)data {
     %orig;
     
     if (YTMU(@"YTMUltimateIsEnabled") && YTMU(@"skipDislikedSongs")) {
-        [self checkIfDislikedAndSkip];
+        SEL checkSel = @selector(checkIfDislikedAndSkip);
+        if (class_getInstanceMethod(object_getClass(self), checkSel)) {
+            ((void (*)(id, SEL))objc_msgSend)(self, checkSel);
+        }
     }
     
     if (YTMU(@"YTMUltimateIsEnabled") && YTMU(@"discordRPC")) {
@@ -158,14 +187,22 @@ static NSInteger YTMUint(NSString *key) {
                 NSString *title = [videoDetails valueForKey:@"title"];
                 NSString *author = [videoDetails valueForKey:@"author"];
                 
-                [[%c(YTMUDiscordRPC) sharedInstance] updatePresenceWithTitle:title artist:author album:nil];
+                // Use runtime dispatch for Discord RPC
+                Class discordRPCClass = NSClassFromString(@"YTMUDiscordRPC");
+                if (discordRPCClass) {
+                    SEL sharedInstanceSel = NSSelectorFromString(@"sharedInstance");
+                    SEL updatePresenceSel = NSSelectorFromString(@"updatePresenceWithTitle:artist:album:");
+                    if (sharedInstanceSel && updatePresenceSel) {
+                        id instance = ((id (*)(Class, SEL))objc_msgSend)(discordRPCClass, sharedInstanceSel);
+                        if (instance) {
+                            ((void (*)(id, SEL, NSString *, NSString *, id))objc_msgSend)(instance, updatePresenceSel, title, author, nil);
+                        }
+                    }
+                }
             }
         }
     }
 }
-
-%new
-- (void)checkIfDislikedAndSkip {
     YTPlayerResponse *response = self.playerResponse;
     if (!response) return;
     
@@ -339,7 +376,17 @@ static NSInteger YTMUint(NSString *key) {
     %orig;
     
     if (YTMU(@"YTMUltimateIsEnabled") && YTMU(@"discordRPC")) {
-        [[%c(YTMUDiscordRPC) sharedInstance] clearPresence];
+        Class discordRPCClass = NSClassFromString(@"YTMUDiscordRPC");
+        if (discordRPCClass) {
+            SEL sharedInstanceSel = NSSelectorFromString(@"sharedInstance");
+            SEL clearPresenceSel = NSSelectorFromString(@"clearPresence");
+            if (sharedInstanceSel && clearPresenceSel) {
+                id instance = ((id (*)(Class, SEL))objc_msgSend)(discordRPCClass, sharedInstanceSel);
+                if (instance) {
+                    ((void (*)(id, SEL))objc_msgSend)(instance, clearPresenceSel);
+                }
+            }
+        }
     }
 }
 %end
@@ -357,7 +404,10 @@ static NSInteger YTMUint(NSString *key) {
     
     if (YTMU(@"YTMUltimateIsEnabled") && (YTMU(@"downloadAudio") || YTMU(@"downloadCoverImage"))) {
         // Add bulk download button
-        [self addBulkDownloadButton];
+        SEL addButtonSel = @selector(addBulkDownloadButton);
+        if (class_getInstanceMethod(object_getClass(self), addButtonSel)) {
+            ((void (*)(id, SEL))objc_msgSend)(self, addButtonSel);
+        }
     }
 }
 
@@ -379,8 +429,12 @@ static NSInteger YTMUint(NSString *key) {
                                                                    message:LOC(@"BULK_DOWNLOAD_DESC") 
                                                             preferredStyle:UIAlertControllerStyleActionSheet];
     
+    __weak typeof(self) weakSelf = self;
     [alert addAction:[UIAlertAction actionWithTitle:LOC(@"DOWNLOAD_ALL_AUDIO") style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
-        [self startBulkDownload:YES];
+        SEL startDownloadSel = @selector(startBulkDownload:);
+        if (class_getInstanceMethod(object_getClass(weakSelf), startDownloadSel)) {
+            ((void (*)(id, SEL, BOOL))objc_msgSend)(weakSelf, startDownloadSel, YES);
+        }
     }]];
     
     [alert addAction:[UIAlertAction actionWithTitle:LOC(@"CANCEL") style:UIAlertActionStyleCancel handler:nil]];
@@ -521,7 +575,10 @@ static NSInteger YTMUint(NSString *key) {
     %orig;
     
     if (YTMU(@"YTMUltimateIsEnabled") && YTMU(@"autoClearCacheOnClose")) {
-        [self clearCacheTo1KB];
+        SEL clearCacheSel = @selector(clearCacheTo1KB);
+        if (class_getInstanceMethod(object_getClass(self), clearCacheSel)) {
+            ((void (*)(id, SEL))objc_msgSend)(self, clearCacheSel);
+        }
     }
 }
 
@@ -530,7 +587,10 @@ static NSInteger YTMUint(NSString *key) {
     
     // Also clear cache when app goes to background (optional, but useful)
     if (YTMU(@"YTMUltimateIsEnabled") && YTMU(@"autoClearCacheOnClose")) {
-        [self clearCacheTo1KB];
+        SEL clearCacheSel = @selector(clearCacheTo1KB);
+        if (class_getInstanceMethod(object_getClass(self), clearCacheSel)) {
+            ((void (*)(id, SEL))objc_msgSend)(self, clearCacheSel);
+        }
     }
 }
 %end
