@@ -5,7 +5,6 @@
 #import "Headers/YTMToastController.h"
 #import "Headers/Localization.h"
 #import "Headers/YTAlertView.h"
-#import "FFMpegDownloader.h"
 
 static BOOL YTMU(NSString *key) {
     NSDictionary *YTMUltimateDict = [[NSUserDefaults standardUserDefaults] dictionaryForKey:@"YTMUltimate"];

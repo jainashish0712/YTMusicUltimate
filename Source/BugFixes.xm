@@ -1,6 +1,8 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 #import <AVFoundation/AVFoundation.h>
+#import <objc/runtime.h>
+#import <objc/message.h>
 #import "Headers/YTPlayerViewController.h"
 #import "Headers/YTMWatchViewController.h"
 #import "Headers/YTPlayabilityResolutionUserActionUIController.h"
@@ -180,11 +182,9 @@ static BOOL YTMU(NSString *key) {
     if (YTMU(@"YTMUltimateIsEnabled") && YTMU(@"skipWarning")) {
         // Ensure we properly dismiss any existing alerts first
         dispatch_async(dispatch_get_main_queue(), ^{
-            if ([self respondsToSelector:@selector(confirmAlertDidPressConfirm)]) {
-                #pragma clang diagnostic push
-                #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-                [self performSelector:@selector(confirmAlertDidPressConfirm)];
-                #pragma clang diagnostic pop
+            SEL confirmSel = @selector(confirmAlertDidPressConfirm);
+            if (class_getInstanceMethod([self class], confirmSel)) {
+                ((void (*)(id, SEL))objc_msgSend)(self, confirmSel);
             }
         });
     } else {
@@ -196,11 +196,9 @@ static BOOL YTMU(NSString *key) {
 - (void)presentWarningWithRenderer:(id)renderer {
     if (YTMU(@"YTMUltimateIsEnabled") && YTMU(@"skipWarning")) {
         // Auto-confirm all warning types
-        if ([self respondsToSelector:@selector(confirmAlertDidPressConfirm)]) {
-            #pragma clang diagnostic push
-            #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-            [self performSelector:@selector(confirmAlertDidPressConfirm)];
-            #pragma clang diagnostic pop
+        SEL confirmSel = @selector(confirmAlertDidPressConfirm);
+        if (class_getInstanceMethod([self class], confirmSel)) {
+            ((void (*)(id, SEL))objc_msgSend)(self, confirmSel);
         }
         return;
     }
@@ -221,7 +219,11 @@ static BOOL YTMU(NSString *key) {
 - (instancetype)initWithFrame:(CGRect)frame {
     self = %orig;
     if (self && YTMU(@"YTMUltimateIsEnabled") && YTMU(@"skipWarning")) {
-        [self setHidden:YES];
+        // Use objc_msgSend to avoid forward declaration issues
+        SEL setHiddenSel = @selector(setHidden:);
+        if (class_getInstanceMethod([self class], setHiddenSel)) {
+            ((void (*)(id, SEL, BOOL))objc_msgSend)(self, setHiddenSel, YES);
+        }
     }
     return self;
 }
@@ -235,13 +237,14 @@ static BOOL YTMU(NSString *key) {
     if (YTMU(@"YTMUltimateIsEnabled") && YTMU(@"skipWarning")) {
         // Auto-dismiss after a short delay
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            if ([self respondsToSelector:@selector(confirmButtonTapped:)]) {
-                #pragma clang diagnostic push
-                #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-                [self performSelector:@selector(confirmButtonTapped:) withObject:nil];
-                #pragma clang diagnostic pop
-            } else if ([self respondsToSelector:@selector(dismissViewControllerAnimated:completion:)]) {
-                [self dismissViewControllerAnimated:NO completion:nil];
+            Class cls = [self class];
+            SEL confirmSel = @selector(confirmButtonTapped:);
+            SEL dismissSel = @selector(dismissViewControllerAnimated:completion:);
+            
+            if (class_getInstanceMethod(cls, confirmSel)) {
+                ((void (*)(id, SEL, id))objc_msgSend)(self, confirmSel, nil);
+            } else if (class_getInstanceMethod(cls, dismissSel)) {
+                ((void (*)(id, SEL, BOOL, void(^)(void)))objc_msgSend)(self, dismissSel, NO, nil);
             }
         });
     }
@@ -431,11 +434,9 @@ static BOOL YTMU(NSString *key) {
 - (void)presentAd {
     if (YTMU(@"YTMUltimateIsEnabled") && YTMU(@"noAds")) {
         // Skip the ad entirely
-        if ([self respondsToSelector:@selector(skipAd)]) {
-            #pragma clang diagnostic push
-            #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-            [self performSelector:@selector(skipAd)];
-            #pragma clang diagnostic pop
+        SEL skipAdSel = @selector(skipAd);
+        if (class_getInstanceMethod([self class], skipAdSel)) {
+            ((void (*)(id, SEL))objc_msgSend)(self, skipAdSel);
         }
         return;
     }
