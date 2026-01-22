@@ -159,27 +159,105 @@ static BOOL YTMU(NSString *key) {
 
 %new
 - (void)ytmu_clearCache {
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0), ^{
-        NSString *path =
-            NSSearchPathForDirectoriesInDomains(NSCachesDirectory,
-                                                NSUserDomainMask,
-                                                YES).firstObject;
-        if (path) {
-            [[NSFileManager defaultManager]
-                removeItemAtPath:path
-                           error:nil];
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    NSString *cachePath = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES).firstObject;
+    
+    if (!cachePath || !fileManager) return;
+    
+    // Get all files in cache directory
+    NSError *error = nil;
+    NSArray *files = [fileManager contentsOfDirectoryAtPath:cachePath error:&error];
+    
+    if (error || !files) {
+        NSLog(@"[YTMusicUltimate] Error reading cache: %@", error.localizedDescription);
+        return;
+    }
+    
+    // Calculate total size and collect file info
+    unsigned long long totalSize = 0;
+    NSMutableArray *fileInfos = [NSMutableArray array];
+    
+    for (NSString *fileName in files) {
+        NSString *filePath = [cachePath stringByAppendingPathComponent:fileName];
+        
+        // Skip directories and hidden files
+        BOOL isDirectory = NO;
+        if ([fileManager fileExistsAtPath:filePath isDirectory:&isDirectory] && !isDirectory) {
+            NSDictionary *attributes = [fileManager attributesOfItemAtPath:filePath error:nil];
+            if (attributes) {
+                unsigned long long fileSize = [attributes fileSize];
+                totalSize += fileSize;
+                [fileInfos addObject:@{@"path": filePath, @"size": @(fileSize)}];
+            }
         }
-    });
+    }
+    
+    // Target size: 1KB (1024 bytes)
+    const unsigned long long targetSize = 1024;
+    
+    // Sort by size (largest first) to remove biggest files first
+    [fileInfos sortUsingComparator:^NSComparisonResult(NSDictionary *obj1, NSDictionary *obj2) {
+        NSNumber *size1 = obj1[@"size"];
+        NSNumber *size2 = obj2[@"size"];
+        return [size2 compare:size1];
+    }];
+    
+    // Remove files until we're under 1KB
+    for (NSDictionary *fileInfo in fileInfos) {
+        if (totalSize <= targetSize) break;
+        
+        NSString *filePath = fileInfo[@"path"];
+        NSNumber *fileSize = fileInfo[@"size"];
+        NSString *fileName = [filePath lastPathComponent];
+        
+        // Skip important system files
+        if ([fileName hasPrefix:@"."] || 
+            [fileName containsString:@"com.apple"] ||
+            [fileName containsString:@"YTMusicUltimate"]) {
+            continue;
+        }
+        
+        NSError *removeError = nil;
+        if ([fileManager removeItemAtPath:filePath error:&removeError]) {
+            totalSize -= [fileSize unsignedLongLongValue];
+        }
+    }
+    
+    // If cache is completely empty or very small, create a placeholder to maintain ~1KB
+    if (totalSize < targetSize) {
+        NSString *placeholderPath = [cachePath stringByAppendingPathComponent:@".ytmu_cache_placeholder"];
+        NSData *placeholderData = [NSData dataWithBytes:"YTMusicUltimate Cache Placeholder" length:32];
+        [placeholderData writeToFile:placeholderPath atomically:YES];
+    }
+    
+    NSLog(@"[YTMusicUltimate] Cache cleared. Final size: %llu bytes", totalSize);
 }
 
 - (void)applicationWillTerminate:(UIApplication *)application {
     %orig;
 
     if (YTMU(@"YTMUltimateIsEnabled") && YTMU(@"autoClearCacheOnClose")) {
-        SEL sel = @selector(ytmu_clearCache);
-        if (class_getInstanceMethod(object_getClass(self), sel)) {
-            ((void (*)(id, SEL))objc_msgSend)(self, sel);
-        }
+        // Run synchronously on termination to ensure it completes
+        [self ytmu_clearCache];
+    }
+}
+
+- (void)applicationDidEnterBackground:(UIApplication *)application {
+    %orig;
+
+    // Also clear cache when app goes to background
+    if (YTMU(@"YTMUltimateIsEnabled") && YTMU(@"autoClearCacheOnClose")) {
+        // Use background task to ensure it completes
+        __block UIBackgroundTaskIdentifier bgTask = [[UIApplication sharedApplication] beginBackgroundTaskWithExpirationHandler:^{
+            [[UIApplication sharedApplication] endBackgroundTask:bgTask];
+            bgTask = UIBackgroundTaskInvalid;
+        }];
+        
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+            [self ytmu_clearCache];
+            [[UIApplication sharedApplication] endBackgroundTask:bgTask];
+            bgTask = UIBackgroundTaskInvalid;
+        });
     }
 }
 %end
