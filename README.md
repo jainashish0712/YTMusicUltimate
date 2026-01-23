@@ -1,4 +1,39 @@
 # YTMusicUltimate
+
+What's New in YTMusicUltimate-Avion-main
+
+
+Three New Files Added:
+AutoClearCache.xm
+Clears app cache when the app starts
+Runs in the background
+Helps free up storage
+NewFeatures.xm
+Always High Quality Audio: Forces high quality even without Premium
+Skip Disliked Songs: Automatically skips songs you've disliked
+Discord Rich Presence: Saves what you're playing so Discord can show it (requires external setup)
+BugFixes.xm (489 lines)
+Recap not opening: Fixed
+Audio glitches when switching tracks: Fixed buffer issues
+Content warning black screen: Improved handling
+Crashes on non-standard video sizes: Added safety checks
+Music video vs audio preference: Option to prefer audio-only
+Ads still showing during AirPlay/shuffle: Improved ad blocking
+Improvements to Existing Features:
+SponsorBlock
+Added support for podcasts: skips sponsors, intros, outros in podcasts
+Better error handling
+Settings Menu
+Added 3 new player options:
+Always high quality audio
+Skip disliked songs
+Prefer audio-only version
+Added SponsorBlock for podcasts toggle
+Added Import/Export settings (backup/restore)
+Added Discord RPC toggle
+
+
+
 <p align="center">
 <img src=https://user-images.githubusercontent.com/38832025/235781424-06d81647-b3db-4d9b-94dc-cd65cdf09145.png?raw=true) />
 </p>    
@@ -52,6 +87,10 @@ If the github action works and you cannot find where you can download the result
    
 
    • To learn how to inject tweaks in to ipa visit __[here (Azule)](https://github.com/Al4ise/Azule)__
+
+
+
+
 
 
 
