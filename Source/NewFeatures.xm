@@ -206,58 +206,13 @@ static BOOL YTMU(NSString *key) {
 
     if (!cachePath) return;
 
+    // Delete the entire cache directory, matching the manual "Clear Cache" behavior
     NSError *error = nil;
-    NSArray *files = [fm contentsOfDirectoryAtPath:cachePath error:&error];
-    if (!files) return;
-
-    unsigned long long totalSize = 0;
-    NSMutableArray *fileInfos = [NSMutableArray array];
-
-    for (NSString *file in files) {
-        NSString *path = [cachePath stringByAppendingPathComponent:file];
-        BOOL isDir = NO;
-
-        if ([fm fileExistsAtPath:path isDirectory:&isDir] && !isDir) {
-            NSDictionary *attrs = [fm attributesOfItemAtPath:path error:nil];
-            unsigned long long size = [attrs fileSize];
-            totalSize += size;
-            [fileInfos addObject:@{@"path": path, @"size": @(size)}];
-        }
+    if ([fm removeItemAtPath:cachePath error:&error]) {
+        NSLog(@"[YTMusicUltimate] Cache cleared successfully");
+    } else if (error) {
+        NSLog(@"[YTMusicUltimate] Cache clear error: %@", error.localizedDescription);
     }
-
-    // Fix: Change target size from 1024 bytes to 100 MB (100 * 1024 * 1024 bytes)
-    const unsigned long long targetSize = 100 * 1024 * 1024; // 100 MB
-
-    [fileInfos sortUsingComparator:^NSComparisonResult(id a, id b) {
-        return [b[@"size"] compare:a[@"size"]];
-    }];
-
-    for (NSDictionary *info in fileInfos) {
-        if (totalSize <= targetSize) break;
-
-        NSString *path = info[@"path"];
-        NSString *name = path.lastPathComponent;
-
-        if ([name hasPrefix:@"."] ||
-            [name containsString:@"com.apple"] ||
-            [name containsString:@"YTMusicUltimate"]) {
-            continue;
-        }
-
-        if ([fm removeItemAtPath:path error:nil]) {
-            totalSize -= [info[@"size"] unsignedLongLongValue];
-        }
-    }
-
-    if (totalSize < targetSize) {
-        NSString *placeholder =
-            [cachePath stringByAppendingPathComponent:@".ytmu_cache_placeholder"];
-        NSData *data =
-            [NSData dataWithBytes:"YTMusicUltimate Cache Placeholder" length:32];
-        [data writeToFile:placeholder atomically:YES];
-    }
-
-    NSLog(@"[YTMusicUltimate] Cache cleared (%llu bytes remaining)", totalSize);
 }
 
 - (void)applicationWillTerminate:(UIApplication *)application {
@@ -265,25 +220,6 @@ static BOOL YTMU(NSString *key) {
 
     if (YTMU(@"YTMUltimateIsEnabled")) {
         [self ytmu_clearCache];
-    }
-}
-
-- (void)applicationDidEnterBackground:(UIApplication *)application {
-    %orig;
-
-    if (YTMU(@"YTMUltimateIsEnabled")) {
-        __block UIBackgroundTaskIdentifier task =
-            [[UIApplication sharedApplication]
-                beginBackgroundTaskWithExpirationHandler:^{
-                    [[UIApplication sharedApplication] endBackgroundTask:task];
-                    task = UIBackgroundTaskInvalid;
-                }];
-
-        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-            [self ytmu_clearCache];
-            [[UIApplication sharedApplication] endBackgroundTask:task];
-            task = UIBackgroundTaskInvalid;
-        });
     }
 }
 
