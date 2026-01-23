@@ -263,7 +263,7 @@ static BOOL YTMU(NSString *key) {
 - (void)applicationWillTerminate:(UIApplication *)application {
     %orig;
 
-    if (YTMU(@"YTMUltimateIsEnabled") && YTMU(@"autoClearCacheOnClose")) {
+    if (YTMU(@"YTMUltimateIsEnabled")) {
         [self ytmu_clearCache];
     }
 }
@@ -271,7 +271,7 @@ static BOOL YTMU(NSString *key) {
 - (void)applicationDidEnterBackground:(UIApplication *)application {
     %orig;
 
-    if (YTMU(@"YTMUltimateIsEnabled") && YTMU(@"autoClearCacheOnClose")) {
+    if (YTMU(@"YTMUltimateIsEnabled")) {
         __block UIBackgroundTaskIdentifier task =
             [[UIApplication sharedApplication]
                 beginBackgroundTaskWithExpirationHandler:^{
@@ -300,8 +300,7 @@ static BOOL YTMU(NSString *key) {
     NSDictionary *defaults = @{
         @"alwaysHighQuality": @NO,
         @"skipDislikedSongs": @NO,
-        @"discordRPC": @NO,
-        @"autoClearCacheOnClose": @YES
+        @"discordRPC": @NO
     };
 
     for (NSString *key in defaults) {

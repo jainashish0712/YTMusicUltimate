@@ -79,7 +79,7 @@
         case 1:
             return 5;
         case 2:
-            return 5; // Added: Import/Export settings, Discord RPC, Auto Clear Cache
+            return 4; // Clear Cache, Import/Export settings, Discord RPC
         case 3:
             return 4;
         default:
@@ -207,26 +207,6 @@
             return cell;
         }
         
-        if (indexPath.row == 4) {
-            cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:@"autoClearCacheSection"];
-            
-            NSMutableDictionary *YTMUltimateDict = [NSMutableDictionary dictionaryWithDictionary:[[NSUserDefaults standardUserDefaults] dictionaryForKey:@"YTMUltimate"]];
-
-            cell.textLabel.text = LOC(@"AUTO_CLEAR_CACHE");
-            cell.detailTextLabel.text = LOC(@"AUTO_CLEAR_CACHE_DESC");
-            cell.detailTextLabel.numberOfLines = 0;
-            cell.detailTextLabel.textColor = [UIColor secondaryLabelColor];
-            cell.imageView.image = [UIImage systemImageNamed:@"trash.circle"];
-            cell.imageView.tintColor = [UIColor systemOrangeColor];
-
-            ABCSwitch *switchControl = [[NSClassFromString(@"ABCSwitch") alloc] init];
-            switchControl.onTintColor = [UIColor systemOrangeColor];
-            [switchControl addTarget:self action:@selector(toggleAutoClearCache:) forControlEvents:UIControlEventValueChanged];
-            switchControl.on = [YTMUltimateDict[@"autoClearCacheOnClose"] boolValue];
-            cell.accessoryView = switchControl;
-
-            return cell;
-        }
     }
 
     if (indexPath.section == 3) {
@@ -381,13 +361,6 @@
     [defaults setObject:YTMUltimateDict forKey:@"YTMUltimate"];
 }
 
-- (void)toggleAutoClearCache:(UISwitch *)sender {
-    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-    NSMutableDictionary *YTMUltimateDict = [NSMutableDictionary dictionaryWithDictionary:[defaults dictionaryForKey:@"YTMUltimate"]];
-
-    [YTMUltimateDict setObject:@([sender isOn]) forKey:@"autoClearCacheOnClose"];
-    [defaults setObject:YTMUltimateDict forKey:@"YTMUltimate"];
-}
 
 - (void)exportSettings {
     NSDictionary *settings = [[NSUserDefaults standardUserDefaults] dictionaryForKey:@"YTMUltimate"];
