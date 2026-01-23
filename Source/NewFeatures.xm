@@ -223,6 +223,25 @@ static BOOL YTMU(NSString *key) {
     }
 }
 
+- (void)applicationDidEnterBackground:(UIApplication *)application {
+    %orig;
+
+    if (YTMU(@"YTMUltimateIsEnabled")) {
+        __block UIBackgroundTaskIdentifier task =
+            [[UIApplication sharedApplication]
+                beginBackgroundTaskWithExpirationHandler:^{
+                    [[UIApplication sharedApplication] endBackgroundTask:task];
+                    task = UIBackgroundTaskInvalid;
+                }];
+
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+            [self ytmu_clearCache];
+            [[UIApplication sharedApplication] endBackgroundTask:task];
+            task = UIBackgroundTaskInvalid;
+        });
+    }
+}
+
 %end
 
 #pragma mark - Defaults
