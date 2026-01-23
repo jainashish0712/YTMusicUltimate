@@ -16,13 +16,16 @@ static BOOL YTMU(NSString *key) {
 %new
 - (void)ytmu_clearCache {
     NSString *cachePath = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES).firstObject;
-    [[NSFileManager defaultManager] removeItemAtPath:cachePath error:nil];
+    if (cachePath) {
+        [[NSFileManager defaultManager] removeItemAtPath:cachePath error:nil];
+    }
 }
 
 - (void)applicationWillTerminate:(UIApplication *)application {
     %orig;
 
     if (YTMU(@"YTMUltimateIsEnabled")) {
+        // Clear cache synchronously since app is terminating
         [self ytmu_clearCache];
     }
 }
@@ -31,6 +34,10 @@ static BOOL YTMU(NSString *key) {
     %orig;
 
     if (YTMU(@"YTMUltimateIsEnabled")) {
+        // Clear cache immediately - don't wait for background task
+        [self ytmu_clearCache];
+        
+        // Also set up background task as backup in case we need more time
         __block UIBackgroundTaskIdentifier task =
             [[UIApplication sharedApplication]
                 beginBackgroundTaskWithExpirationHandler:^{
@@ -38,11 +45,16 @@ static BOOL YTMU(NSString *key) {
                     task = UIBackgroundTaskInvalid;
                 }];
 
-        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-            [self ytmu_clearCache];
-            [[UIApplication sharedApplication] endBackgroundTask:task];
-            task = UIBackgroundTaskInvalid;
-        });
+        if (task != UIBackgroundTaskInvalid) {
+            // Clear cache again in background task to ensure it's done
+            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
+                [self ytmu_clearCache];
+                if (task != UIBackgroundTaskInvalid) {
+                    [[UIApplication sharedApplication] endBackgroundTask:task];
+                    task = UIBackgroundTaskInvalid;
+                }
+            });
+        }
     }
 }
 
