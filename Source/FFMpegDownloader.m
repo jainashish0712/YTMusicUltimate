@@ -33,7 +33,25 @@
 
     [MobileFFmpegConfig setLogDelegate:self];
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        int returnCode = [MobileFFmpeg execute:[NSString stringWithFormat:@"-i %@ -c copy %@", audioURL, destinationURL]];
+        // look for user-provided impulse response at Documents/YTMusicUltimate/impulse.wav
+        NSURL *documentsURL = [[[NSFileManager defaultManager] URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask] lastObject];
+        NSURL *impulseURL = [documentsURL URLByAppendingPathComponent:@"YTMusicUltimate/impulse.wav"];
+        NSString *impulsePath = [impulseURL path];
+        BOOL hasImpulse = [[NSFileManager defaultManager] fileExistsAtPath:impulsePath];
+
+        NSString *command;
+        if (hasImpulse) {
+            // apply provided afir convolution chain (re-encode to AAC)
+            // uses the filter chain you provided: asetrate/aresample/atempo -> afir
+            command = [NSString stringWithFormat:
+                       @"-i \"%@\" -i \"%@\" -filter_complex \"[0:a]asetrate=44100*1.02335,aresample=44100,atempo=0.97707[p]; [p][1:a]afir\" -c:a aac -b:a 192k \"%@\"",
+                       audioURL, impulsePath, destinationURL];
+        } else {
+            // default behaviour (copy)
+            command = [NSString stringWithFormat:@"-i \"%@\" -c copy \"%@\"", audioURL, destinationURL];
+        }
+
+        int returnCode = [MobileFFmpeg execute:command];
         dispatch_async(dispatch_get_main_queue(), ^{
             if (returnCode == RETURN_CODE_SUCCESS) {
                 [self.hud hideAnimated:YES];
