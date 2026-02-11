@@ -119,3 +119,41 @@
 "ALL_DOWNLOADS" = "all download audios"; //keep it lowercase
 "DELETE" = "Delete";
 "RENAME" = "Rename";
+
+// New Features
+"ALWAYS_HIGH_QUALITY" = "Always high quality audio";
+"ALWAYS_HIGH_QUALITY_DESC" = "Forces high quality audio playback regardless of Premium status";
+"SKIP_DISLIKED_SONGS" = "Skip disliked songs";
+"SKIP_DISLIKED_SONGS_DESC" = "Automatically skips songs you've disliked";
+"SKIPPED_DISLIKED" = "Skipped disliked song";
+"PREFER_AUDIO_VERSION" = "Prefer audio-only version";
+"PREFER_AUDIO_VERSION_DESC" = "Prefers audio-only version over music video when available";
+
+"SB_PODCASTS" = "SponsorBlock for podcasts";
+"SB_PODCASTS_DESC" = "Skip sponsor segments, intros, outros in podcasts";
+
+"EXPORT_SETTINGS" = "Export settings";
+"EXPORT_SETTINGS_DESC" = "Share your YTMusicUltimate settings";
+"IMPORT_SETTINGS" = "Import settings";
+"IMPORT_SETTINGS_DESC" = "Import YTMusicUltimate settings from JSON";
+"IMPORT_SETTINGS_INSTRUCTIONS" = "Paste the JSON settings below";
+"PASTE_JSON_HERE" = "Paste JSON here...";
+"NO_SETTINGS_TO_EXPORT" = "No settings to export";
+"INVALID_JSON" = "Invalid JSON format";
+"SETTINGS_IMPORTED" = "Settings imported successfully. Restart the app to apply changes.";
+"IMPORT" = "Import";
+"SUCCESS" = "Success";
+"ERROR" = "Error";
+
+"DISCORD_RPC" = "Discord Rich Presence";
+"DISCORD_RPC_DESC" = "Show currently playing song in Discord status";
+
+"AUTO_CLEAR_CACHE" = "Auto clear cache on close";
+"AUTO_CLEAR_CACHE_DESC" = "Automatically clears app cache to 1KB when app closes or goes to background";
+
+"BULK_DOWNLOAD" = "Bulk Download";
+"BULK_DOWNLOAD_DESC" = "Download all songs in this playlist";
+"DOWNLOAD_ALL_AUDIO" = "Download all audio";
+"NO_ITEMS_TO_DOWNLOAD" = "No items to download";
+"STARTING_BULK_DOWNLOAD" = "Starting download of %@ songs...";
+"BULK_DOWNLOAD_COMPLETE" = "Bulk download complete";

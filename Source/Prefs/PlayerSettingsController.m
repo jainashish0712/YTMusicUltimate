@@ -31,9 +31,9 @@
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
     if (section == 0) {
-        return 7;
+        return 10; // Added: alwaysHighQuality, skipDislikedSongs, preferAudioVersion
     } if (section == 2) {
-        return 3;
+        return 4; // Added: sponsorBlockPodcasts
     } if (section == 3) {
         return 2;
     } else {
@@ -68,7 +68,10 @@
             @{@"title": LOC(@"SELECTABLE_LYRICS"), @"desc": LOC(@"SELECTABLE_LYRICS_DESC"), @"key": @"selectableLyrics"},
             @{@"title": LOC(@"VOLBAR"), @"desc": LOC(@"VOLBAR_DESC"), @"key": @"volBar"},
             @{@"title": LOC(@"NO_AUTORADIO"), @"desc": LOC(@"NO_AUTORADIO_DESC"), @"key": @"disableAutoRadio"},
-            @{@"title": LOC(@"SKIP_CONTENT_WARNING"), @"desc": LOC(@"SKIP_CONTENT_WARNING_DESC"), @"key": @"skipWarning"}
+            @{@"title": LOC(@"SKIP_CONTENT_WARNING"), @"desc": LOC(@"SKIP_CONTENT_WARNING_DESC"), @"key": @"skipWarning"},
+            @{@"title": LOC(@"ALWAYS_HIGH_QUALITY"), @"desc": LOC(@"ALWAYS_HIGH_QUALITY_DESC"), @"key": @"alwaysHighQuality"},
+            @{@"title": LOC(@"SKIP_DISLIKED_SONGS"), @"desc": LOC(@"SKIP_DISLIKED_SONGS_DESC"), @"key": @"skipDislikedSongs"},
+            @{@"title": LOC(@"PREFER_AUDIO_VERSION"), @"desc": LOC(@"PREFER_AUDIO_VERSION_DESC"), @"key": @"preferAudioVersion"}
         ];
 
         NSDictionary *data = settingsData[indexPath.row];
@@ -152,6 +155,24 @@
 
             return cell;
         }
+        
+        if (indexPath.row == 3) {
+            cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:@"sbPodcastCell"];
+
+            cell.textLabel.text = LOC(@"SB_PODCASTS");
+            cell.textLabel.adjustsFontSizeToFitWidth = YES;
+            cell.detailTextLabel.text = LOC(@"SB_PODCASTS_DESC");
+            cell.detailTextLabel.numberOfLines = 0;
+            cell.detailTextLabel.textColor = [UIColor secondaryLabelColor];
+
+            ABCSwitch *switchControl = [[NSClassFromString(@"ABCSwitch") alloc] init];
+            switchControl.onTintColor = [UIColor colorWithRed:30.0/255.0 green:150.0/255.0 blue:245.0/255.0 alpha:1.0];
+            [switchControl addTarget:self action:@selector(toggleSBPodcastSwitch:) forControlEvents:UIControlEventValueChanged];
+            switchControl.on = [YTMUltimateDict[@"sponsorBlockPodcasts"] boolValue];
+            cell.accessoryView = switchControl;
+
+            return cell;
+        }
     }
     
     if (indexPath.section == 3) {
@@ -212,6 +233,9 @@
         @{@"key": @"volBar"},
         @{@"key": @"disableAutoRadio"},
         @{@"key": @"skipWarning"},
+        @{@"key": @"alwaysHighQuality"},
+        @{@"key": @"skipDislikedSongs"},
+        @{@"key": @"preferAudioVersion"},
     ];
 
     NSDictionary *data = settingsData[sender.tag];
@@ -235,6 +259,14 @@
     NSMutableDictionary *YTMUltimateDict = [NSMutableDictionary dictionaryWithDictionary:[defaults dictionaryForKey:@"YTMUltimate"]];
 
     [YTMUltimateDict setObject:@(sender.selectedSegmentIndex) forKey:@"sbSkipMode"];
+    [defaults setObject:YTMUltimateDict forKey:@"YTMUltimate"];
+}
+
+- (void)toggleSBPodcastSwitch:(UISwitch *)sender {
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    NSMutableDictionary *YTMUltimateDict = [NSMutableDictionary dictionaryWithDictionary:[defaults dictionaryForKey:@"YTMUltimate"]];
+
+    [YTMUltimateDict setObject:@([sender isOn]) forKey:@"sponsorBlockPodcasts"];
     [defaults setObject:YTMUltimateDict forKey:@"YTMUltimate"];
 }
 

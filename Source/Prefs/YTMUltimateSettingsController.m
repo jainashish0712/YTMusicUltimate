@@ -79,7 +79,7 @@
         case 1:
             return 5;
         case 2:
-            return 1;
+            return 4; // Clear Cache, Import/Export settings, Discord RPC
         case 3:
             return 4;
         default:
@@ -141,22 +141,72 @@
     }
 
     if (indexPath.section == 2) {
-        cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:@"cacheSection"];
+        if (indexPath.row == 0) {
+            cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:@"cacheSection"];
 
-        cell.textLabel.text = LOC(@"CLEAR_CACHE");
+            cell.textLabel.text = LOC(@"CLEAR_CACHE");
 
-        UILabel *cache = [[UILabel alloc] init];
-        cache.text = [self getCacheSize];
-        cache.textColor = [UIColor secondaryLabelColor];
-        cache.font = [UIFont systemFontOfSize:16];
-        cache.textAlignment = NSTextAlignmentRight;
-        [cache sizeToFit];
+            UILabel *cache = [[UILabel alloc] init];
+            cache.text = [self getCacheSize];
+            cache.textColor = [UIColor secondaryLabelColor];
+            cache.font = [UIFont systemFontOfSize:16];
+            cache.textAlignment = NSTextAlignmentRight;
+            [cache sizeToFit];
 
-        cell.accessoryView = cache;
-        cell.imageView.image = [UIImage systemImageNamed:@"trash"];
-        cell.imageView.tintColor = [UIColor redColor];
+            cell.accessoryView = cache;
+            cell.imageView.image = [UIImage systemImageNamed:@"trash"];
+            cell.imageView.tintColor = [UIColor redColor];
 
-        return cell;
+            return cell;
+        }
+        
+        if (indexPath.row == 1) {
+            cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:@"exportSection"];
+
+            cell.textLabel.text = LOC(@"EXPORT_SETTINGS");
+            cell.detailTextLabel.text = LOC(@"EXPORT_SETTINGS_DESC");
+            cell.detailTextLabel.numberOfLines = 0;
+            cell.detailTextLabel.textColor = [UIColor secondaryLabelColor];
+            cell.imageView.image = [UIImage systemImageNamed:@"square.and.arrow.up"];
+            cell.imageView.tintColor = [UIColor systemBlueColor];
+
+            return cell;
+        }
+        
+        if (indexPath.row == 2) {
+            cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:@"importSection"];
+
+            cell.textLabel.text = LOC(@"IMPORT_SETTINGS");
+            cell.detailTextLabel.text = LOC(@"IMPORT_SETTINGS_DESC");
+            cell.detailTextLabel.numberOfLines = 0;
+            cell.detailTextLabel.textColor = [UIColor secondaryLabelColor];
+            cell.imageView.image = [UIImage systemImageNamed:@"square.and.arrow.down"];
+            cell.imageView.tintColor = [UIColor systemGreenColor];
+
+            return cell;
+        }
+        
+        if (indexPath.row == 3) {
+            cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:@"discordSection"];
+            
+            NSMutableDictionary *YTMUltimateDict = [NSMutableDictionary dictionaryWithDictionary:[[NSUserDefaults standardUserDefaults] dictionaryForKey:@"YTMUltimate"]];
+
+            cell.textLabel.text = LOC(@"DISCORD_RPC");
+            cell.detailTextLabel.text = LOC(@"DISCORD_RPC_DESC");
+            cell.detailTextLabel.numberOfLines = 0;
+            cell.detailTextLabel.textColor = [UIColor secondaryLabelColor];
+            cell.imageView.image = [UIImage systemImageNamed:@"message.badge.waveform"];
+            cell.imageView.tintColor = [UIColor colorWithRed:88/255.0 green:101/255.0 blue:242/255.0 alpha:1.0]; // Discord blue
+
+            ABCSwitch *switchControl = [[NSClassFromString(@"ABCSwitch") alloc] init];
+            switchControl.onTintColor = [UIColor colorWithRed:88/255.0 green:101/255.0 blue:242/255.0 alpha:1.0];
+            [switchControl addTarget:self action:@selector(toggleDiscordRPC:) forControlEvents:UIControlEventValueChanged];
+            switchControl.on = [YTMUltimateDict[@"discordRPC"] boolValue];
+            cell.accessoryView = switchControl;
+
+            return cell;
+        }
+        
     }
 
     if (indexPath.section == 3) {
@@ -223,21 +273,33 @@
         }
     }
 
-    if (indexPath.section == 2 && indexPath.row == 0) {
-        UIActivityIndicatorView *activityIndicator = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleMedium];
-        activityIndicator.color = [UIColor labelColor];
-        [activityIndicator startAnimating];
-        UITableViewCell *cell = [tableView cellForRowAtIndexPath:indexPath];
-        cell.accessoryView = activityIndicator;
+    if (indexPath.section == 2) {
+        if (indexPath.row == 0) {
+            UIActivityIndicatorView *activityIndicator = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleMedium];
+            activityIndicator.color = [UIColor labelColor];
+            [activityIndicator startAnimating];
+            UITableViewCell *cell = [tableView cellForRowAtIndexPath:indexPath];
+            cell.accessoryView = activityIndicator;
 
-        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-            NSString *cachePath = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES).firstObject;
-            [[NSFileManager defaultManager] removeItemAtPath:cachePath error:nil];
+            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+                NSString *cachePath = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES).firstObject;
+                [[NSFileManager defaultManager] removeItemAtPath:cachePath error:nil];
 
-            dispatch_async(dispatch_get_main_queue(), ^{
-                [self.tableView reloadRowsAtIndexPaths:@[[NSIndexPath indexPathForRow:0 inSection:2]] withRowAnimation:UITableViewRowAnimationNone];
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    [self.tableView reloadRowsAtIndexPaths:@[[NSIndexPath indexPathForRow:0 inSection:2]] withRowAnimation:UITableViewRowAnimationNone];
+                });
             });
-        });
+        }
+        
+        if (indexPath.row == 1) {
+            // Export settings
+            [self exportSettings];
+        }
+        
+        if (indexPath.row == 2) {
+            // Import settings
+            [self importSettings];
+        }
     }
 
     if (indexPath.section == 3) {
@@ -289,6 +351,86 @@
 
     [twitchDvnDict setObject:@([sender isOn]) forKey:@"YTMUltimateIsEnabled"];
     [defaults setObject:twitchDvnDict forKey:@"YTMUltimate"];
+}
+
+- (void)toggleDiscordRPC:(UISwitch *)sender {
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    NSMutableDictionary *YTMUltimateDict = [NSMutableDictionary dictionaryWithDictionary:[defaults dictionaryForKey:@"YTMUltimate"]];
+
+    [YTMUltimateDict setObject:@([sender isOn]) forKey:@"discordRPC"];
+    [defaults setObject:YTMUltimateDict forKey:@"YTMUltimate"];
+}
+
+
+- (void)exportSettings {
+    NSDictionary *settings = [[NSUserDefaults standardUserDefaults] dictionaryForKey:@"YTMUltimate"];
+    if (!settings) {
+        UIAlertController *alert = [UIAlertController alertControllerWithTitle:LOC(@"ERROR") message:LOC(@"NO_SETTINGS_TO_EXPORT") preferredStyle:UIAlertControllerStyleAlert];
+        [alert addAction:[UIAlertAction actionWithTitle:LOC(@"CLOSE") style:UIAlertActionStyleDefault handler:nil]];
+        [self presentViewController:alert animated:YES completion:nil];
+        return;
+    }
+    
+    NSError *error;
+    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:settings options:NSJSONWritingPrettyPrinted error:&error];
+    if (error) {
+        UIAlertController *alert = [UIAlertController alertControllerWithTitle:LOC(@"ERROR") message:error.localizedDescription preferredStyle:UIAlertControllerStyleAlert];
+        [alert addAction:[UIAlertAction actionWithTitle:LOC(@"CLOSE") style:UIAlertActionStyleDefault handler:nil]];
+        [self presentViewController:alert animated:YES completion:nil];
+        return;
+    }
+    
+    // Create temporary file for sharing
+    NSString *tempPath = [NSTemporaryDirectory() stringByAppendingPathComponent:@"YTMUltimate_Settings.json"];
+    [jsonData writeToFile:tempPath atomically:YES];
+    
+    NSURL *fileURL = [NSURL fileURLWithPath:tempPath];
+    UIActivityViewController *activityVC = [[UIActivityViewController alloc] initWithActivityItems:@[fileURL] applicationActivities:nil];
+    activityVC.excludedActivityTypes = @[UIActivityTypeAssignToContact, UIActivityTypePrint];
+    
+    if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
+        activityVC.popoverPresentationController.sourceView = self.view;
+        activityVC.popoverPresentationController.sourceRect = CGRectMake(self.view.bounds.size.width / 2, self.view.bounds.size.height / 2, 0, 0);
+    }
+    
+    [self presentViewController:activityVC animated:YES completion:nil];
+}
+
+- (void)importSettings {
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:LOC(@"IMPORT_SETTINGS") message:LOC(@"IMPORT_SETTINGS_INSTRUCTIONS") preferredStyle:UIAlertControllerStyleAlert];
+    
+    [alert addTextFieldWithConfigurationHandler:^(UITextField *textField) {
+        textField.placeholder = LOC(@"PASTE_JSON_HERE");
+    }];
+    
+    [alert addAction:[UIAlertAction actionWithTitle:LOC(@"CANCEL") style:UIAlertActionStyleCancel handler:nil]];
+    
+    [alert addAction:[UIAlertAction actionWithTitle:LOC(@"IMPORT") style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+        NSString *jsonString = alert.textFields.firstObject.text;
+        if (!jsonString || jsonString.length == 0) return;
+        
+        NSError *error;
+        NSData *jsonData = [jsonString dataUsingEncoding:NSUTF8StringEncoding];
+        NSDictionary *settings = [NSJSONSerialization JSONObjectWithData:jsonData options:0 error:&error];
+        
+        if (error || ![settings isKindOfClass:[NSDictionary class]]) {
+            UIAlertController *errorAlert = [UIAlertController alertControllerWithTitle:LOC(@"ERROR") message:LOC(@"INVALID_JSON") preferredStyle:UIAlertControllerStyleAlert];
+            [errorAlert addAction:[UIAlertAction actionWithTitle:LOC(@"CLOSE") style:UIAlertActionStyleDefault handler:nil]];
+            [self presentViewController:errorAlert animated:YES completion:nil];
+            return;
+        }
+        
+        [[NSUserDefaults standardUserDefaults] setObject:settings forKey:@"YTMUltimate"];
+        [[NSUserDefaults standardUserDefaults] synchronize];
+        
+        UIAlertController *successAlert = [UIAlertController alertControllerWithTitle:LOC(@"SUCCESS") message:LOC(@"SETTINGS_IMPORTED") preferredStyle:UIAlertControllerStyleAlert];
+        [successAlert addAction:[UIAlertAction actionWithTitle:LOC(@"CLOSE") style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+            [self.tableView reloadData];
+        }]];
+        [self presentViewController:successAlert animated:YES completion:nil];
+    }]];
+    
+    [self presentViewController:alert animated:YES completion:nil];
 }
 
 @end
