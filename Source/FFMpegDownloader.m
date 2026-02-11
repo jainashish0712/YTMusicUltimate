@@ -35,7 +35,8 @@
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         // look for user-provided impulse response
         NSURL *documentsURL = [[[NSFileManager defaultManager] URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask] lastObject];
-        NSURL *impulseURL = [documentsURL URLByAppendingPathComponent:@"impulse.wav"];
+        NSURL *folderURL = [documentsURL URLByAppendingPathComponent:@"YTMusicUltimate"];
+        NSURL *impulseURL = [folderURL URLByAppendingPathComponent:@"impulse.wav"];
         NSString *impulsePath = [impulseURL path];
         BOOL hasImpulse = [[NSFileManager defaultManager] fileExistsAtPath:impulsePath];
 
@@ -49,8 +50,8 @@
         } else {
             // default behaviour (copy)
             command = [NSString stringWithFormat:
-                       @"-i \"%@\" -i \"%@\" -filter_complex \"[0:a]asetrate=44100*1.02335,aresample=44100,atempo=0.97707[p]; [p][1:a]afir\" -c:a aac -b:a 192k \"%@\"",
-                       audioURL, impulsePath, destinationURL];
+           @"-i \"%@\" -filter_complex \"[0:a]asetrate=44100*1.02335,aresample=44100,atempo=0.97707\" -c:a aac -b:a 192k \"%@\"",
+           audioURL, destinationURL];
 
         }
 
