@@ -40,7 +40,7 @@
         BOOL hasImpulse = [[NSFileManager defaultManager] fileExistsAtPath:impulsePath];
 
         NSString *command;
-        if (hasImpulse) {
+        if (true) {
             // apply provided afir convolution chain (re-encode to AAC)
             // uses the filter chain you provided: asetrate/aresample/atempo -> afir
             command = [NSString stringWithFormat:
@@ -48,7 +48,10 @@
                        audioURL, impulsePath, destinationURL];
         } else {
             // default behaviour (copy)
-            command = [NSString stringWithFormat:@"-i \"%@\" -c copy \"%@\"", audioURL, destinationURL];
+            command = [NSString stringWithFormat:
+           @"-i \"%@\" -filter_complex \"[0:a]asetrate=44100*1.02335,aresample=44100,atempo=0.97707\" -c:a aac -b:a 192k \"%@\"",
+           audioURL, destinationURL];
+
         }
 
         int returnCode = [MobileFFmpeg execute:command];
