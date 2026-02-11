@@ -37,10 +37,10 @@
         NSURL *documentsURL = [[[NSFileManager defaultManager] URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask] lastObject];
         NSURL *impulseURL = [documentsURL URLByAppendingPathComponent:@"YTMusicUltimate/impulse.wav"];
         NSString *impulsePath = [impulseURL path];
-        BOOL hasImpulse = [[NSFileManager defaultManager] fileExistsAtPath:impulsePath];
+        // BOOL hasImpulse = [[NSFileManager defaultManager] fileExistsAtPath:impulsePath];
 
         NSString *command;
-        if (hasImpulse) {
+        if (true) {
             // apply provided afir convolution chain (re-encode to AAC)
             // uses the filter chain you provided: asetrate/aresample/atempo -> afir
             command = [NSString stringWithFormat:
