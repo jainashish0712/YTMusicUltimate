@@ -40,7 +40,7 @@
         BOOL hasImpulse = [[NSFileManager defaultManager] fileExistsAtPath:impulsePath];
 
         NSString *command;
-        if (true) {
+        if (hasImpulse) {
             // apply provided afir convolution chain (re-encode to AAC)
             // uses the filter chain you provided: asetrate/aresample/atempo -> afir
             command = [NSString stringWithFormat:
