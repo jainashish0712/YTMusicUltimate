@@ -45,8 +45,8 @@
             // apply provided afir convolution chain (re-encode to AAC)
             // uses the filter chain you provided: asetrate/aresample/atempo -> afir
             command = [NSString stringWithFormat:
-                       @"-i \"%@\" -i \"%@\" -filter_complex \"[0:a]asetrate=44100*1.02335,aresample=44100,atempo=0.97707[p]; [p][1:a]afir\" -c:a aac -b:a 192k \"%@\"",
-                       audioURL, impulsePath, destinationURL];
+                    @"-i \"%@\" -i \"%@\" -filter_complex \"[0:a]asetrate=44100*1.02335,aresample=44100,atempo=0.97707,volume=3.5[p];[p][1:a]afir,aloudnorm=I=-16:TP=-1.5:LRA=11\" -c:a aac -b:a 192k -vn \"%@\"",
+                    audioURL, impulsePath, destinationURL];
         } else {
             // default behaviour (copy)
             command = [NSString stringWithFormat:
