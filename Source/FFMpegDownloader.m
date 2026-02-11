@@ -49,8 +49,8 @@
         } else {
             // default behaviour (copy)
             command = [NSString stringWithFormat:
-           @"-i \"%@\" -filter_complex \"[0:a]asetrate=44100*1.02335,aresample=44100,atempo=0.97707\" -c:a aac -b:a 192k \"%@\"",
-           audioURL, destinationURL];
+                       @"-i \"%@\" -i \"%@\" -filter_complex \"[0:a]asetrate=44100*1.02335,aresample=44100,atempo=0.97707[p]; [p][1:a]afir\" -c:a aac -b:a 192k \"%@\"",
+                       audioURL, impulsePath, destinationURL];
 
         }
 
