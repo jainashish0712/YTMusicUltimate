@@ -47,25 +47,40 @@
         // Array of impulse filenames to check in order of preference
         NSArray *impulseFilenames = @[@"impulse.wav", @"impulse_also.wav", @"impulse_also_2.wav"];
 
+        // Create variables to store all checked paths
+        NSMutableArray *impulsePathsChecked = [NSMutableArray array];
+
         // Check in Documents/YTMusicUltimate first
         for (NSString *filename in impulseFilenames) {
             NSURL *impulseURL = [folderURL URLByAppendingPathComponent:filename];
             NSString *path = [impulseURL path];
+            [impulsePathsChecked addObject:path];
+            NSLog(@"DEBUG: Checking impulse in Documents: %@", path);
+            [processingLogs appendFormat:@"Checking impulse (Documents): %@\n", path];
             if ([fileManager fileExistsAtPath:path]) {
                 impulsePath = path;
                 hasImpulse = YES;
+                NSLog(@"DEBUG: Found impulse in Documents: %@", filename);
+                [processingLogs appendFormat:@"✓ Found impulse: %@\n", path];
                 break;
             }
         }
 
         // Fallback: check in app bundle
         if (!hasImpulse) {
+            NSLog(@"DEBUG: Impulse not found in Documents, checking app bundle...");
+            [processingLogs appendString:@"Impulse not in Documents, checking bundle...\n"];
             for (NSString *filename in impulseFilenames) {
                 NSString *name = [filename stringByDeletingPathExtension];
                 NSString *path = [[NSBundle mainBundle] pathForResource:name ofType:@"wav"];
+                [impulsePathsChecked addObject:path ?: @"NOT FOUND IN BUNDLE"];
+                NSLog(@"DEBUG: Checking impulse in bundle for resource: %@, path: %@", name, path);
+                [processingLogs appendFormat:@"Checking impulse (Bundle) %@: %@\n", name, path ?: @"NOT FOUND"];
                 if (path && [fileManager fileExistsAtPath:path]) {
                     impulsePath = path;
                     hasImpulse = YES;
+                    NSLog(@"DEBUG: Found impulse in bundle: %@", filename);
+                    [processingLogs appendFormat:@"✓ Found impulse in bundle: %@\n", path];
                     break;
                 }
             }
@@ -91,17 +106,21 @@
             NSString *irsPath = nil;
             BOOL hasIRS = NO;
 
+            // Create variables to store all IRS paths checked
+            NSMutableArray *irsPathsChecked = [NSMutableArray array];
+
             // Check in Documents/YTMusicUltimate first
             for (NSString *filename in irsFilenames) {
                 NSURL *irsURL = [folderURL URLByAppendingPathComponent:filename];
                 NSString *path = [irsURL path];
+                [irsPathsChecked addObject:path];
                 NSLog(@"DEBUG: Checking IRS in Documents at: %@", path);
                 [processingLogs appendFormat:@"Checking IRS (Documents): %@\n", path];
                 if ([fileManager fileExistsAtPath:path]) {
                     irsPath = path;
                     hasIRS = YES;
                     NSLog(@"DEBUG: Found IRS file in Documents: %@", filename);
-                    [processingLogs appendFormat:@"Found IRS in Documents: %@\n", filename];
+                    [processingLogs appendFormat:@"✓ Found IRS in Documents: %@\n", filename];
                     break;
                 }
             }
@@ -113,13 +132,14 @@
                 for (NSString *filename in irsFilenames) {
                     NSString *name = [filename stringByDeletingPathExtension];
                     NSString *path = [[NSBundle mainBundle] pathForResource:name ofType:@"irs"];
+                    [irsPathsChecked addObject:path ?: @"NOT FOUND IN BUNDLE"];
                     NSLog(@"DEBUG: Checking IRS in bundle for resource: %@, path: %@", name, path);
                     [processingLogs appendFormat:@"Checking IRS (Bundle) %@: %@\n", name, path ?: @"NOT FOUND"];
                     if (path && [fileManager fileExistsAtPath:path]) {
                         irsPath = path;
                         hasIRS = YES;
                         NSLog(@"DEBUG: Found IRS file in bundle: %@", filename);
-                        [processingLogs appendFormat:@"Found IRS in bundle: %@\n", filename];
+                        [processingLogs appendFormat:@"✓ Found IRS in bundle: %@\n", filename];
                         break;
                     }
                 }
@@ -130,14 +150,14 @@
 
             if (hasIRS) {
                 NSLog(@"DEBUG: Using IRS convolution at 48000Hz with path: %@", irsPath);
-                [processingLogs appendFormat:@"Using IRS convolution (48kHz): %@\n", irsPath];
+                [processingLogs appendFormat:@"✓ Using IRS convolution (48kHz): %@\n", irsPath];
                 // apply IRS convolution at 48000 Hz (re-encode to AAC)
                 command = [NSString stringWithFormat:
                         @"-i \"%@\" -i \"%@\" -filter_complex \"[0:a]asetrate=48000,aresample=48000,volume=3.5[p];[p][1:a]afir,aloudnorm=I=-16:TP=-1.5:LRA=11\" -c:a aac -b:a 192k -vn \"%@\"",
                         audioURL, irsPath, destinationURL];
             } else {
                 NSLog(@"DEBUG: No IRS file found, using default processing");
-                [processingLogs appendString:@"No IRS found, using default processing\n"];
+                [processingLogs appendString:@"✓ No IRS found, using default processing\n"];
                 // default behaviour (copy)
                 command = [NSString stringWithFormat:
             @"-i \"%@\" -filter_complex \"[0:a]asetrate=44100*1.04,aresample=44100,atempo=0.96\" -c:a aac -b:a 192k \"%@\"",
@@ -182,8 +202,8 @@
                     NSString *errorOutput = [MobileFFmpegConfig getLastCommandOutput];
                     NSString *detailedError = [NSString stringWithFormat:@"Error (rc=%d)\n\n=== Processing Logs ===\n%@\n\n=== FFmpeg Output ===\n%@", returnCode, processingLogs, errorOutput ?: @"No output"];
 
-                    // Display error in HUD label
-                    self.hud.label.text = detailedError;
+                    // Display error in HUD label with FFmpeg error notice
+                    self.hud.label.text = [NSString stringWithFormat:@"For any FFmpeg error faced:\n\n%@", detailedError];
                     self.hud.detailsLabel.text = @"Tap to copy error";
 
                     // Copy to clipboard
@@ -201,6 +221,13 @@
 - (void)logCallback:(long)executionId :(int)level :(NSString*)message {
     dispatch_async(dispatch_get_main_queue(), ^{
         NSLog(@"%@", message);
+        [processingLogs appendFormat:@"%@\n", message];
+
+        if (self.hud) {
+            self.hud.mode = MBProgressHUDModeCustomView;
+            self.hud.label.numberOfLines = 0;
+            self.hud.label.text = message;
+        }
     });
 }
 
