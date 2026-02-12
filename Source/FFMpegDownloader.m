@@ -36,9 +36,39 @@
         // look for user-provided impulse response
         NSURL *documentsURL = [[[NSFileManager defaultManager] URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask] lastObject];
         NSURL *folderURL = [documentsURL URLByAppendingPathComponent:@"YTMusicUltimate"];
-        NSURL *impulseURL = [folderURL URLByAppendingPathComponent:@"impulse.wav"];
-        NSString *impulsePath = [impulseURL path];
-        BOOL hasImpulse = [[NSFileManager defaultManager] fileExistsAtPath:impulsePath];
+        NSFileManager *fileManager = [NSFileManager defaultManager];
+
+        NSString *impulsePath = nil;
+        BOOL hasImpulse = NO;
+
+        // Array of impulse filenames to check in order of preference
+        NSArray *impulseFilenames = @[@"impulse.wav", @"impulse_also.wav", @"impulse_also_2.wav"];
+
+        // Check in Documents/YTMusicUltimate first
+        for (NSString *filename in impulseFilenames) {
+            NSURL *impulseURL = [folderURL URLByAppendingPathComponent:filename];
+            NSString *path = [impulseURL path];
+            if ([fileManager fileExistsAtPath:path]) {
+                impulsePath = path;
+                hasImpulse = YES;
+                break;
+            }
+        }
+
+        // Fallback: check in app bundle
+        if (!hasImpulse) {
+            for (NSString *filename in impulseFilenames) {
+                NSString *name = [filename stringByDeletingPathExtension];
+                NSString *path = [[NSBundle mainBundle] pathForResource:name ofType:@"wav"];
+                if (path && [fileManager fileExistsAtPath:path]) {
+                    impulsePath = path;
+                    hasImpulse = YES;
+                    break;
+                }
+            }
+        }
+
+        NSLog(@"Impulse path checked: %@, exists: %@", impulsePath, hasImpulse ? @"YES" : @"NO");
 
         NSString *command;
         if (hasImpulse) {
@@ -48,11 +78,48 @@
                     @"-i \"%@\" -i \"%@\" -filter_complex \"[0:a]asetrate=44100*1.02335,aresample=44100,atempo=0.97707,volume=3.5[p];[p][1:a]afir,aloudnorm=I=-16:TP=-1.5:LRA=11\" -c:a aac -b:a 192k -vn \"%@\"",
                     audioURL, impulsePath, destinationURL];
         } else {
-            // default behaviour (copy)
-            command = [NSString stringWithFormat:
-           @"-i \"%@\" -filter_complex \"[0:a]asetrate=44100*1.02335,aresample=44100,atempo=0.97707\" -c:a aac -b:a 192k \"%@\"",
-           audioURL, destinationURL];
+            // Check for IRS files (48000 Hz sample rate only)
+            NSArray *irsFilenames = @[@"Joe0Bloggs 3D headphones IRS-surround upmix-48000.irs", @"Orchestra.irs"];
+            NSString *irsPath = nil;
+            BOOL hasIRS = NO;
 
+            // Check in Documents/YTMusicUltimate first
+            for (NSString *filename in irsFilenames) {
+                NSURL *irsURL = [folderURL URLByAppendingPathComponent:filename];
+                NSString *path = [irsURL path];
+                if ([fileManager fileExistsAtPath:path]) {
+                    irsPath = path;
+                    hasIRS = YES;
+                    break;
+                }
+            }
+
+            // Fallback: check in app bundle
+            if (!hasIRS) {
+                for (NSString *filename in irsFilenames) {
+                    NSString *name = [filename stringByDeletingPathExtension];
+                    NSString *path = [[NSBundle mainBundle] pathForResource:name ofType:@"irs"];
+                    if (path && [fileManager fileExistsAtPath:path]) {
+                        irsPath = path;
+                        hasIRS = YES;
+                        break;
+                    }
+                }
+            }
+
+            NSLog(@"IRS path checked: %@, exists: %@", irsPath, hasIRS ? @"YES" : @"NO");
+
+            if (hasIRS) {
+                // apply IRS convolution at 48000 Hz (re-encode to AAC)
+                command = [NSString stringWithFormat:
+                        @"-i \"%@\" -i \"%@\" -filter_complex \"[0:a]asetrate=48000,aresample=48000,volume=3.5[p];[p][1:a]afir,aloudnorm=I=-16:TP=-1.5:LRA=11\" -c:a aac -b:a 192k -vn \"%@\"",
+                        audioURL, irsPath, destinationURL];
+            } else {
+                // default behaviour (copy)
+                command = [NSString stringWithFormat:
+               @"-i \"%@\" -filter_complex \"[0:a]asetrate=44100*1.02335,aresample=44100,atempo=0.97707\" -c:a aac -b:a 192k \"%@\"",
+               audioURL, destinationURL];
+            }
         }
 
         int returnCode = [MobileFFmpeg execute:command];
