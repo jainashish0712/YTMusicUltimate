@@ -140,7 +140,7 @@
                 [processingLogs appendString:@"No IRS found, using default processing\n"];
                 // default behaviour (copy)
                 command = [NSString stringWithFormat:
-            @"-i \"%@\" -filter_complex \"[0:a]asetrate=44100*1.0086,aresample=44100,atempo=0.9915\" -c:a aac -b:a 48k \"%@\"",
+            @"-i \"%@\" -filter_complex \"[0:a]asetrate=44100*1.0086,aresample=44100,atempo=0.9915\" -c:a aac -b:a 192k \"%@\"",
             audioURL, destinationURL];
             }
         }
