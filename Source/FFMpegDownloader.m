@@ -96,7 +96,7 @@
             // apply provided afir convolution chain (re-encode to AAC)
             // uses the filter chain you provided: asetrate/aresample/atempo -> afir
             command = [NSString stringWithFormat:
-                    @"-i \"%@\" -i \"%@\" -filter_complex \"[0:a]asetrate=44100*1.02335,aresample=44100,atempo=0.97707,volume=3.5[p];[p][1:a]afir,aloudnorm=I=-16:TP=-1.5:LRA=11\" -c:a aac -b:a 192k -vn \"%@\"",
+                    @"-i \"%@\" -i \"%@\" -filter_complex \"[0:a]asetrate=44100*1.22335,aresample=44100,atempo=0.96,volume=3.5[p];[p][1:a]afir,aloudnorm=I=-16:TP=-1.5:LRA=11\" -c:a aac -b:a 192k -vn \"%@\"",
                     audioURL, impulsePath, destinationURL];
         } else {
             NSLog(@"DEBUG: No impulse file found, checking for IRS files...");
@@ -153,14 +153,14 @@
                 [processingLogs appendFormat:@"✓ Using IRS convolution (48kHz): %@\n", irsPath];
                 // apply IRS convolution at 48000 Hz (re-encode to AAC)
                 command = [NSString stringWithFormat:
-                        @"-i \"%@\" -i \"%@\" -filter_complex \"[0:a]asetrate=48000,aresample=48000,volume=3.5[p];[p][1:a]afir,aloudnorm=I=-16:TP=-1.5:LRA=11\" -c:a aac -b:a 192k -vn \"%@\"",
+                        @"-i \"%@\" -i \"%@\" -filter_complex \"[0:a]asetrate=44100*2.13335,aresample=44100,atempo=0.96,volume=3.5[p];[p][1:a]afir,aloudnorm=I=-16:TP=-1.5:LRA=11\" -c:a aac -b:a 192k -vn \"%@\"",
                         audioURL, irsPath, destinationURL];
             } else {
                 NSLog(@"DEBUG: No IRS file found, using default processing");
                 [processingLogs appendString:@"✓ No IRS found, using default processing\n"];
                 // default behaviour (copy)
                 command = [NSString stringWithFormat:
-            @"-i \"%@\" -filter_complex \"[0:a]asetrate=44100*1.14,aresample=44100,atempo=0.9\" -c:a aac -b:a 192k \"%@\"",
+            @"-i \"%@\" -filter_complex \"[0:a]asetrate=44100*3.42335,aresample=44100,atempo=0.96\" -c:a aac -b:a 192k \"%@\"",
             audioURL, destinationURL];
             }
         }
