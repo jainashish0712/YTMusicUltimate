@@ -3,6 +3,7 @@
 @implementation FFMpegDownloader {
 
     Statistics *statistics;
+    NSMutableString *processingLogs;
 
 }
 
@@ -15,6 +16,8 @@
 
 - (void)downloadAudio:(NSString *)audioURL {
     statistics = nil;
+    processingLogs = [NSMutableString string];
+    [processingLogs appendString:@"=== Download Started ===\n"];
     [MobileFFmpegConfig resetStatistics];
     dispatch_async(dispatch_get_main_queue(), ^{
         [self setActive];
@@ -69,15 +72,20 @@
         }
 
         NSLog(@"Impulse path checked: %@, exists: %@", impulsePath, hasImpulse ? @"YES" : @"NO");
+        [processingLogs appendFormat:@"Impulse checked: %@ (exists: %@)\n", impulsePath, hasImpulse ? @"YES" : @"NO"];
 
         NSString *command;
         if (hasImpulse) {
+            NSLog(@"DEBUG: Using impulse file convolution with path: %@", impulsePath);
+            [processingLogs appendFormat:@"Using impulse convolution: %@\n", impulsePath];
             // apply provided afir convolution chain (re-encode to AAC)
             // uses the filter chain you provided: asetrate/aresample/atempo -> afir
             command = [NSString stringWithFormat:
                     @"-i \"%@\" -i \"%@\" -filter_complex \"[0:a]asetrate=44100*1.02335,aresample=44100,atempo=0.97707,volume=3.5[p];[p][1:a]afir,aloudnorm=I=-16:TP=-1.5:LRA=11\" -c:a aac -b:a 192k -vn \"%@\"",
                     audioURL, impulsePath, destinationURL];
         } else {
+            NSLog(@"DEBUG: No impulse file found, checking for IRS files...");
+            [processingLogs appendString:@"No impulse found, checking IRS files...\n"];
             // Check for IRS files (48000 Hz sample rate only)
             NSArray *irsFilenames = @[@"Joe0Bloggs 3D headphones IRS-surround upmix-48000.irs", @"Orchestra.irs"];
             NSString *irsPath = nil;
@@ -87,38 +95,53 @@
             for (NSString *filename in irsFilenames) {
                 NSURL *irsURL = [folderURL URLByAppendingPathComponent:filename];
                 NSString *path = [irsURL path];
+                NSLog(@"DEBUG: Checking IRS in Documents at: %@", path);
+                [processingLogs appendFormat:@"Checking IRS (Documents): %@\n", path];
                 if ([fileManager fileExistsAtPath:path]) {
                     irsPath = path;
                     hasIRS = YES;
+                    NSLog(@"DEBUG: Found IRS file in Documents: %@", filename);
+                    [processingLogs appendFormat:@"Found IRS in Documents: %@\n", filename];
                     break;
                 }
             }
 
             // Fallback: check in app bundle
             if (!hasIRS) {
+                NSLog(@"DEBUG: IRS not found in Documents, checking app bundle...");
+                [processingLogs appendString:@"IRS not in Documents, checking bundle...\n"];
                 for (NSString *filename in irsFilenames) {
                     NSString *name = [filename stringByDeletingPathExtension];
                     NSString *path = [[NSBundle mainBundle] pathForResource:name ofType:@"irs"];
+                    NSLog(@"DEBUG: Checking IRS in bundle for resource: %@, path: %@", name, path);
+                    [processingLogs appendFormat:@"Checking IRS (Bundle) %@: %@\n", name, path ?: @"NOT FOUND"];
                     if (path && [fileManager fileExistsAtPath:path]) {
                         irsPath = path;
                         hasIRS = YES;
+                        NSLog(@"DEBUG: Found IRS file in bundle: %@", filename);
+                        [processingLogs appendFormat:@"Found IRS in bundle: %@\n", filename];
                         break;
                     }
                 }
             }
 
             NSLog(@"IRS path checked: %@, exists: %@", irsPath, hasIRS ? @"YES" : @"NO");
+            [processingLogs appendFormat:@"IRS checked: %@ (exists: %@)\n", irsPath, hasIRS ? @"YES" : @"NO"];
 
             if (hasIRS) {
+                NSLog(@"DEBUG: Using IRS convolution at 48000Hz with path: %@", irsPath);
+                [processingLogs appendFormat:@"Using IRS convolution (48kHz): %@\n", irsPath];
                 // apply IRS convolution at 48000 Hz (re-encode to AAC)
                 command = [NSString stringWithFormat:
                         @"-i \"%@\" -i \"%@\" -filter_complex \"[0:a]asetrate=48000,aresample=48000,volume=3.5[p];[p][1:a]afir,aloudnorm=I=-16:TP=-1.5:LRA=11\" -c:a aac -b:a 192k -vn \"%@\"",
                         audioURL, irsPath, destinationURL];
             } else {
+                NSLog(@"DEBUG: No IRS file found, using default processing");
+                [processingLogs appendString:@"No IRS found, using default processing\n"];
                 // default behaviour (copy)
                 command = [NSString stringWithFormat:
-               @"-i \"%@\" -filter_complex \"[0:a]asetrate=44100*1.02335,aresample=44100,atempo=0.97707\" -c:a aac -b:a 192k \"%@\"",
-               audioURL, destinationURL];
+            @"-i \"%@\" -filter_complex \"[0:a]asetrate=44100*1.0086,aresample=44100,atempo=0.9915\" -c:a aac -b:a 48k \"%@\"",
+            audioURL, destinationURL];
             }
         }
 
@@ -155,8 +178,18 @@
                     checkmarkImageView.contentMode = UIViewContentModeScaleAspectFit;
                     self.hud.customView = checkmarkImageView;
 
-                    [self.hud hideAnimated:YES afterDelay:3.0];
-                    [UIPasteboard generalPasteboard].string = [NSString stringWithFormat:@"Command execution failed with rc=%d and output=%@.\n", returnCode, [MobileFFmpegConfig getLastCommandOutput]];
+                    // Build detailed error message with logs
+                    NSString *errorOutput = [MobileFFmpegConfig getLastCommandOutput];
+                    NSString *detailedError = [NSString stringWithFormat:@"Error (rc=%d)\n\n=== Processing Logs ===\n%@\n\n=== FFmpeg Output ===\n%@", returnCode, processingLogs, errorOutput ?: @"No output"];
+
+                    // Display error in HUD label
+                    self.hud.label.text = detailedError;
+                    self.hud.detailsLabel.text = @"Tap to copy error";
+
+                    // Copy to clipboard
+                    [UIPasteboard generalPasteboard].string = detailedError;
+
+                    [self.hud hideAnimated:YES afterDelay:5.0];
                 }
 
                 [[NSFileManager defaultManager] removeItemAtURL:destinationURL error:nil];
