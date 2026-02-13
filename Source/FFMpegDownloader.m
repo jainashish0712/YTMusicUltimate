@@ -113,7 +113,7 @@
             // apply provided afir convolution chain (re-encode to AAC)
             // uses the filter chain you provided: asetrate/aresample/atempo -> afir
             command = [NSString stringWithFormat:
-                       @"-i \"%@\" -i \"%@\" -filter_complex \"[0:a]asetrate=44100*1.22335,aresample=44100,atempo=0.96,volume=3.5[p];[p][1:a]afir,aloudnorm=I=-16:TP=-1.5:LRA=11\" -c:a aac -b:a 192k -vn \"%@\"",
+                       @"-i \"%@\" -i \"%@\" -filter_complex \"[0:a]asetrate=44100*1.22335,aresample=44100,atempo=0.96,equalizer=f=60:t=q:w=1:g=1.6,equalizer=f=150:t=q:w=1:g=3.9,equalizer=f=400:t=q:w=1:g=0.8,equalizer=f=1000:t=q:w=1:g=-3.3,equalizer=f=2000:t=q:w=1:g=-6.1,equalizer=f=4000:t=q:w=1:g=-0.9,equalizer=f=8000:t=q:w=1:g=1.8,equalizer=f=16000:t=q:w=1:g=-15.0,volume=3.5[p];[p][1:a]afir,aloudnorm=I=-16:TP=-1.5:LRA=11\" -c:a aac -b:a 192k -vn \"%@\"",
                        audioURL, impulsePath, destinationURL];
         } else {
             NSLog(@"DEBUG: No impulse file found, checking for IRS files...");
@@ -166,15 +166,13 @@
                 [processingLogs appendFormat:@"✓ Using IRS convolution (48kHz): %@\n", irsPath];
                 // apply IRS convolution at 48000 Hz (re-encode to AAC)
                 command = [NSString stringWithFormat:
-                           @"-i \"%@\" -i \"%@\" -filter_complex \"[0:a]asetrate=44100*2.13335,aresample=44100,atempo=0.96,volume=3.5[p];[p][1:a]afir,aloudnorm=I=-16:TP=-1.5:LRA=11\" -c:a aac -b:a 192k -vn \"%@\"",
+                           @"-i \"%@\" -i \"%@\" -filter_complex \"[0:a]asetrate=44100*2.13335,aresample=44100,atempo=0.96,equalizer=f=60:t=q:w=1:g=1.6,equalizer=f=150:t=q:w=1:g=3.9,equalizer=f=400:t=q:w=1:g=0.8,equalizer=f=1000:t=q:w=1:g=-3.3,equalizer=f=2000:t=q:w=1:g=-6.1,equalizer=f=4000:t=q:w=1:g=-0.9,equalizer=f=8000:t=q:w=1:g=1.8,equalizer=f=16000:t=q:w=1:g=-15.0,volume=3.5[p];[p][1:a]afir,aloudnorm=I=-16:TP=-1.5:LRA=11\" -c:a aac -b:a 192k -vn \"%@\"",
                            audioURL, irsPath, destinationURL];
             } else {
                 NSLog(@"DEBUG: No IRS file found, using default processing");
                 [processingLogs appendString:@"✓ No IRS found, using default processing\n"];
                 // default behaviour (copy)
-                command = [NSString stringWithFormat:
-                           @"-i \"%@\" -filter_complex \"[0:a]asetrate=44100*1.04,aresample=44100,atempo=0.96,pan=stereo|c0<c0|c1<c1,aecho=0.8:0.88:60:0.4\" -c:a aac -b:a 192k \"%@\"",
-                           audioURL, destinationURL];
+                command = [NSString stringWithFormat:@"-i \"%@\" -filter_complex \"[0:a]asetrate=44100*1.04,aresample=44100,atempo=0.96,equalizer=f=60:t=q:w=1:g=1.6,equalizer=f=150:t=q:w=1:g=3.9,equalizer=f=400:t=q:w=1:g=0.8,equalizer=f=1000:t=q:w=1:g=-3.3,equalizer=f=2000:t=q:w=1:g=-6.1,equalizer=f=4000:t=q:w=1:g=-0.9,equalizer=f=8000:t=q:w=1:g=1.8,equalizer=f=16000:t=q:w=1:g=-15.0\" -c:a aac -b:a 192k \"%@\"", audioURL, destinationURL];
             }
         }
         // Show final convolution file in HUD
