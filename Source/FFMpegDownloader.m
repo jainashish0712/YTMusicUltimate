@@ -86,31 +86,10 @@
             }
         }
 
-        // Final fallback: download remote impulse if not found locally
-        if (!hasImpulse) {
-            NSLog(@"DEBUG: Impulse not found locally, attempting to download remote impulse");
-            [processingLogs appendString:@"Impulse not found locally, downloading remote file...\n"];
-            NSString *localImpulse = [folderURL URLByAppendingPathComponent:@"impulse_also_2.wav"].path;
-            NSURL *rawURL = [NSURL URLWithString:@"https://raw.githubusercontent.com/jainashish0712/YTMusicUltimate/main/Source/impulse_also_2.wav"];
-
-            NSData *data = [NSData dataWithContentsOfURL:rawURL];
-            if (data) {
-                [data writeToFile:localImpulse atomically:YES];
-                impulsePath = localImpulse;
-                hasImpulse = YES;
-                NSLog(@"DEBUG: Downloaded remote impulse to: %@", localImpulse);
-                [processingLogs appendFormat:@"✓ Downloaded remote impulse to: %@\n", localImpulse];
-            } else {
-                NSLog(@"DEBUG: Failed to download remote impulse from: %@", rawURL);
-                [processingLogs appendString:@"✗ Failed to download remote impulse\n"];
-                [impulsePathsChecked addObject:rawURL.absoluteString];
-            }
-        }
-
         NSLog(@"Impulse path checked: %@, exists: %@", impulsePath, hasImpulse ? @"YES" : @"NO");
         [processingLogs appendFormat:@"Impulse checked: %@ (exists: %@)\n", impulsePath, hasImpulse ? @"YES" : @"NO"];
 
-        // Log impulse path to HUD for verification
+                // Log impulse path to HUD for verification
         dispatch_async(dispatch_get_main_queue(), ^{
             NSMutableString *pathInfo = [NSMutableString string];
             [pathInfo appendString:@"=== IMPULSE PATH VERIFICATION ===\n\n"];
@@ -194,7 +173,7 @@
                 [processingLogs appendString:@"✓ No IRS found, using default processing\n"];
                 // default behaviour (copy)
                 command = [NSString stringWithFormat:
-                           @"-i \"%@\" -filter_complex \"[0:a]asetrate=44100*1.04,aresample=44100,atempo=0.96\" -c:a aac -b:a 192k \"%@\"",
+                           @"-i \"%@\" -filter_complex \"[0:a]asetrate=44100*1.04,aresample=44100,atempo=0.96,pan=stereo|c0<c0|c1<c1,aecho=0.8:0.88:60:0.4\" -c:a aac -b:a 192k \"%@\"",
                            audioURL, destinationURL];
             }
         }
