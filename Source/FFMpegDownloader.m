@@ -123,11 +123,11 @@
         if (hasImpulse) {
             NSLog(@"DEBUG: Using impulse file convolution with path: %@", impulsePath);
             [processingLogs appendFormat:@"Using impulse convolution: %@\n", impulsePath];
-            // apply provided afir convolution chain (re-encode to AAC)
+            // apply provided afir convolution chain - use filter_complex for convolution only
             arguments = @[
                 @"-i", audioURL,
                 @"-i", impulsePath,
-                @"-filter_complex", @"[0:a]asetrate=44100*1.22335,aresample=44100,atempo=0.96,equalizer=f=60:t=q:w=1:g=1.6,equalizer=f=150:t=q:w=1:g=3.1,equalizer=f=400:t=q:w=1:g=0.8,equalizer=f=1000:t=q:w=1:g=-3.3,equalizer=f=2000:t=q:w=1:g=-6.1,equalizer=f=4000:t=q:w=1:g=1.3,equalizer=f=8000:t=q:w=1:g=-2.2,equalizer=f=16000:t=q:w=1:g=-15.0,volume=3.5[p];[p][1:a]afir,aloudnorm=I=-16:TP=-1.5:LRA=11",
+                @"-filter_complex", @"[0:a]asetrate=44100*1.22335,aresample=44100,atempo=0.96,volume=3.5[p];[p][1:a]afir=dry=0.2:wet=0.8,loudnorm=I=-16:TP=-1.5:LRA=11",
                 @"-c:a", @"aac",
                 @"-b:a", @"192k",
                 @"-vn",
@@ -182,11 +182,11 @@
             if (hasIRS) {
                 NSLog(@"DEBUG: Using IRS convolution at 48000Hz with path: %@", irsPath);
                 [processingLogs appendFormat:@"✓ Using IRS convolution (48kHz): %@\n", irsPath];
-                // apply IRS convolution at 48000 Hz (re-encode to AAC)
+                // apply IRS convolution at 48000 Hz
                 arguments = @[
                     @"-i", audioURL,
                     @"-i", irsPath,
-                    @"-filter_complex", @"[0:a]asetrate=44100*2.13335,aresample=44100,atempo=0.96,equalizer=f=60:t=q:w=1:g=1.6,equalizer=f=150:t=q:w=1:g=3.1,equalizer=f=400:t=q:w=1:g=0.8,equalizer=f=1000:t=q:w=1:g=-3.3,equalizer=f=2000:t=q:w=1:g=-6.1,equalizer=f=4000:t=q:w=1:g=1.3,equalizer=f=8000:t=q:w=1:g=-2.2,equalizer=f=16000:t=q:w=1:g=-15.0,volume=3.5[p];[p][1:a]afir,aloudnorm=I=-16:TP=-1.5:LRA=11",
+                    @"-filter_complex", @"[0:a]asetrate=44100*2.13335,aresample=44100,atempo=0.96,volume=3.5[p];[p][1:a]afir=dry=0.2:wet=0.8,loudnorm=I=-16:TP=-1.5:LRA=11",
                     @"-c:a", @"aac",
                     @"-b:a", @"192k",
                     @"-vn",
@@ -195,10 +195,10 @@
             } else {
                 NSLog(@"DEBUG: No IRS file found, using default processing");
                 [processingLogs appendString:@"✓ No IRS found, using default processing\n"];
-                // default behaviour (copy)
+                // default behaviour - just normalize and tempo adjust
                 arguments = @[
                     @"-i", audioURL,
-                    @"-filter_complex", @"[0:a]asetrate=44100*1.04,aresample=44100,atempo=0.96,equalizer=f=60:t=q:w=1:g=1.6,equalizer=f=150:t=q:w=1:g=3.1,equalizer=f=400:t=q:w=1:g=0.8,equalizer=f=1000:t=q:w=1:g=-3.3,equalizer=f=2000:t=q:w=1:g=-6.1,equalizer=f=4000:t=q:w=1:g=1.3,equalizer=f=8000:t=q:w=1:g=-2.2,equalizer=f=16000:t=q:w=1:g=-15.0",
+                    @"-af", @"asetrate=44100*1.04,aresample=44100,atempo=0.96",
                     @"-c:a", @"aac",
                     @"-b:a", @"192k",
                     [destinationURL path]
