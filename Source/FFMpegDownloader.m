@@ -45,7 +45,7 @@
         BOOL hasImpulse = NO;
 
         // Array of impulse filenames to check in order of preference
-        NSArray *impulseFilenames = @[@"impulse.wav", @"impulse_also.wav", @"impulse_also_2.wav"];
+        NSArray *impulseFilenames = @[@"impulse.wav", @"impulsealso.wav", @"impulsealso2.wav"];
 
         // Create variables to store all checked paths
         NSMutableArray *impulsePathsChecked = [NSMutableArray array];
@@ -113,8 +113,8 @@
             // apply provided afir convolution chain (re-encode to AAC)
             // uses the filter chain you provided: asetrate/aresample/atempo -> afir
             command = [NSString stringWithFormat:
-                       @"-i \"%@\" -i \"%@\" -filter_complex \"[0:a]asetrate=44100*1.22335,aresample=44100,atempo=0.96,equalizer=f=60:t=q:w=1:g=1.6,equalizer=f=150:t=q:w=1:g=3.9,equalizer=f=400:t=q:w=1:g=0.8,equalizer=f=1000:t=q:w=1:g=-3.3,equalizer=f=2000:t=q:w=1:g=-6.1,equalizer=f=4000:t=q:w=1:g=-0.9,equalizer=f=8000:t=q:w=1:g=1.8,equalizer=f=16000:t=q:w=1:g=-15.0,volume=3.5[p];[p][1:a]afir,aloudnorm=I=-16:TP=-1.5:LRA=11\" -c:a aac -b:a 192k -vn \"%@\"",
-                       audioURL, impulsePath, destinationURL];
+                    @"-i '%@' -i '%@' -filter_complex \"[0:a]asetrate=44100*1.22335,aresample=44100,atempo=0.96,equalizer=f=60:t=q:w=1:g=1.6,equalizer=f=150:t=q:w=1:g=3.9,equalizer=f=400:t=q:w=1:g=0.8,equalizer=f=1000:t=q:w=1:g=-3.3,equalizer=f=2000:t=q:w=1:g=-6.1,equalizer=f=4000:t=q:w=1:g=-0.9,equalizer=f=8000:t=q:w=1:g=1.8,equalizer=f=16000:t=q:w=1:g=-15.0,volume=3.5[p];[p][1:a]afir,aloudnorm=I=-16:TP=-1.5:LRA=11\" -c:a aac -b:a 192k -vn '%@'",
+                    audioURL, impulsePath, destinationURL];
         } else {
             NSLog(@"DEBUG: No impulse file found, checking for IRS files...");
             [processingLogs appendString:@"No impulse found, checking IRS files...\n"];
