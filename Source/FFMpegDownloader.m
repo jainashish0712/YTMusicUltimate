@@ -45,7 +45,10 @@
         BOOL hasImpulse = NO;
 
         // Array of impulse filenames to check in order of preference
-        NSArray *impulseFilenames = @[@"impulse.wav", @"impulsealso.wav", @"impulsealso2.wav"];
+        NSArray *impulseFilenames = @[@"impulse.wav", @"impulsealso.wav"];
+
+        // Remote impulse URL
+        NSString *remoteImpulseURL = @"https://raw.githubusercontent.com/jainashish0712/YTMusicUltimate/refs/heads/main/Source/impulsealso2.wav";
 
         // Create variables to store all checked paths
         NSMutableArray *impulsePathsChecked = [NSMutableArray array];
@@ -89,6 +92,16 @@
         NSLog(@"Impulse path checked: %@, exists: %@", impulsePath, hasImpulse ? @"YES" : @"NO");
         [processingLogs appendFormat:@"Impulse checked: %@ (exists: %@)\n", impulsePath, hasImpulse ? @"YES" : @"NO"];
 
+        // Final fallback: use remote URL if not found locally
+        if (!hasImpulse) {
+            NSLog(@"DEBUG: Impulse not found locally, using remote URL: %@", remoteImpulseURL);
+            [processingLogs appendFormat:@"Using remote impulse: %@\n", remoteImpulseURL];
+            // Escape the URL for FFmpeg
+            NSString *escapedURL = [remoteImpulseURL stringByReplacingOccurrencesOfString:@"'" withString:@"'\\''"];
+            impulsePath = escapedURL;
+            hasImpulse = YES;
+        }
+
                 // Log impulse path to HUD for verification
         dispatch_async(dispatch_get_main_queue(), ^{
             NSMutableString *pathInfo = [NSMutableString string];
@@ -113,7 +126,7 @@
             // apply provided afir convolution chain (re-encode to AAC)
             // uses the filter chain you provided: asetrate/aresample/atempo -> afir
             command = [NSString stringWithFormat:
-                    @"-i '%@' -i '%@' -filter_complex \"[0:a]asetrate=44100*1.22335,aresample=44100,atempo=0.96,equalizer=f=60:t=q:w=1:g=1.6,equalizer=f=150:t=q:w=1:g=3.9,equalizer=f=400:t=q:w=1:g=0.8,equalizer=f=1000:t=q:w=1:g=-3.3,equalizer=f=2000:t=q:w=1:g=-6.1,equalizer=f=4000:t=q:w=1:g=-0.9,equalizer=f=8000:t=q:w=1:g=1.8,equalizer=f=16000:t=q:w=1:g=-15.0,volume=3.5[p];[p][1:a]afir,aloudnorm=I=-16:TP=-1.5:LRA=11\" -c:a aac -b:a 192k -vn '%@'",
+                    @"-i \"%@\" -i \"%@\" -filter_complex \"[0:a]asetrate=44100*1.22335,aresample=44100,atempo=0.96,equalizer=f=60:t=q:w=1:g=1.6,equalizer=f=150:t=q:w=1:g=3.9,equalizer=f=400:t=q:w=1:g=0.8,equalizer=f=1000:t=q:w=1:g=-3.3,equalizer=f=2000:t=q:w=1:g=-6.1,equalizer=f=4000:t=q:w=1:g=-0.9,equalizer=f=8000:t=q:w=1:g=1.8,equalizer=f=16000:t=q:w=1:g=-15.0,volume=3.5[p];[p][1:a]afir,aloudnorm=I=-16:TP=-1.5:LRA=11\" -c:a aac -b:a 192k -vn \"%@\"",
                     audioURL, impulsePath, destinationURL];
         } else {
             NSLog(@"DEBUG: No impulse file found, checking for IRS files...");
@@ -179,6 +192,26 @@
         dispatch_async(dispatch_get_main_queue(), ^{
             self.hud.label.text = impulsePath ?: irsPath ?: @"No convolution file";
         });
+
+        // Validate command before execution
+        if (!command || command.length == 0) {
+            NSLog(@"ERROR: FFmpeg command is empty!");
+            [processingLogs appendString:@"ERROR: FFmpeg command is empty!\n"];
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self.hud hideAnimated:YES];
+                self.hud = [MBProgressHUD showHUDAddedTo:[UIApplication sharedApplication].keyWindow animated:YES];
+                self.hud.mode = MBProgressHUDModeCustomView;
+                self.hud.label.text = LOC(@"OOPS");
+                self.hud.label.numberOfLines = 0;
+                UIImageView *errorImageView = [[UIImageView alloc] initWithImage:[self imageWithSystemIconNamed:@"xmark"]];
+                errorImageView.contentMode = UIViewContentModeScaleAspectFit;
+                self.hud.customView = errorImageView;
+                [self.hud hideAnimated:YES afterDelay:3.0];
+            });
+            return;
+        }
+
+        NSLog(@"DEBUG: Executing FFmpeg command: %@", command);
         int returnCode = [MobileFFmpeg execute:command];
         dispatch_async(dispatch_get_main_queue(), ^{
             if (returnCode == RETURN_CODE_SUCCESS) {
