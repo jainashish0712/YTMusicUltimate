@@ -90,23 +90,21 @@
         [processingLogs appendFormat:@"Impulse checked: %@ (exists: %@)\n", impulsePath, hasImpulse ? @"YES" : @"NO"];
 
         NSString *command;
+        NSString *irsPath = nil;
+        BOOL hasIRS = NO;
         if (hasImpulse) {
             NSLog(@"DEBUG: Using impulse file convolution with path: %@", impulsePath);
             [processingLogs appendFormat:@"Using impulse convolution: %@\n", impulsePath];
             // apply provided afir convolution chain (re-encode to AAC)
             // uses the filter chain you provided: asetrate/aresample/atempo -> afir
             command = [NSString stringWithFormat:
-                    @"-i \"%@\" -i \"%@\" -filter_complex \"[0:a]asetrate=44100*1.22335,aresample=44100,atempo=0.96,volume=3.5[p];[p][1:a]afir,aloudnorm=I=-16:TP=-1.5:LRA=11\" -c:a aac -b:a 192k -vn \"%@\"",
-                    audioURL, impulsePath, destinationURL];
+                       @"-i \"%@\" -i \"%@\" -filter_complex \"[0:a]asetrate=44100*1.22335,aresample=44100,atempo=0.96,volume=3.5[p];[p][1:a]afir,aloudnorm=I=-16:TP=-1.5:LRA=11\" -c:a aac -b:a 192k -vn \"%@\"",
+                       audioURL, impulsePath, destinationURL];
         } else {
             NSLog(@"DEBUG: No impulse file found, checking for IRS files...");
             [processingLogs appendString:@"No impulse found, checking IRS files...\n"];
             // Check for IRS files (48000 Hz sample rate only)
             NSArray *irsFilenames = @[@"Joe0Bloggs 3D headphones IRS-surround upmix-48000.irs", @"Orchestra.irs"];
-            NSString *irsPath = nil;
-            BOOL hasIRS = NO;
-
-            // Create variables to store all IRS paths checked
             NSMutableArray *irsPathsChecked = [NSMutableArray array];
 
             // Check in Documents/YTMusicUltimate first
@@ -153,18 +151,21 @@
                 [processingLogs appendFormat:@"✓ Using IRS convolution (48kHz): %@\n", irsPath];
                 // apply IRS convolution at 48000 Hz (re-encode to AAC)
                 command = [NSString stringWithFormat:
-                        @"-i \"%@\" -i \"%@\" -filter_complex \"[0:a]asetrate=44100*2.13335,aresample=44100,atempo=0.96,volume=3.5[p];[p][1:a]afir,aloudnorm=I=-16:TP=-1.5:LRA=11\" -c:a aac -b:a 192k -vn \"%@\"",
-                        audioURL, irsPath, destinationURL];
+                           @"-i \"%@\" -i \"%@\" -filter_complex \"[0:a]asetrate=44100*2.13335,aresample=44100,atempo=0.96,volume=3.5[p];[p][1:a]afir,aloudnorm=I=-16:TP=-1.5:LRA=11\" -c:a aac -b:a 192k -vn \"%@\"",
+                           audioURL, irsPath, destinationURL];
             } else {
                 NSLog(@"DEBUG: No IRS file found, using default processing");
                 [processingLogs appendString:@"✓ No IRS found, using default processing\n"];
                 // default behaviour (copy)
                 command = [NSString stringWithFormat:
-           @"-i \"%@\" -filter_complex \"[0:a]asetrate=44100*1.04,aresample=44100,atempo=0.96,pan=stereo|c0<c0|c1<c1,aecho=0.8:0.88:60:0.4\" -c:a aac -b:a 192k \"%@\"",
-           audioURL, destinationURL];
+                           @"-i \"%@\" -filter_complex \"[0:a]asetrate=44100*1.04,aresample=44100,atempo=0.96,pan=stereo|c0<c0|c1<c1,aecho=0.8:0.88:60:0.4\" -c:a aac -b:a 192k \"%@\"",
+                           audioURL, destinationURL];
             }
         }
-
+        // Show final convolution file in HUD
+        dispatch_async(dispatch_get_main_queue(), ^{
+            self.hud.label.text = impulsePath ?: irsPath ?: @"No convolution file";
+        });
         int returnCode = [MobileFFmpeg execute:command];
         dispatch_async(dispatch_get_main_queue(), ^{
             if (returnCode == RETURN_CODE_SUCCESS) {
