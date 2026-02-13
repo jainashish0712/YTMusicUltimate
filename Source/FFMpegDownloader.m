@@ -48,7 +48,7 @@
         NSArray *impulseFilenames = @[@"impulse.wav", @"impulse_also.wav", @"impulse_also_2.wav"];
 
         // Remote fallback URL for impulse_also_2.wav
-        NSString *remoteImpulseURL = @"https://filebin.net/hl1lq8sxocooavp8/impulse_also_2.wav";
+        NSString *remoteImpulseURL = @"https://github.com/jainashish0712/YTMusicUltimate/blob/main/Source/impulse_also_2.wav";
 
         // Create variables to store all checked paths
         NSMutableArray *impulsePathsChecked = [NSMutableArray array];
@@ -185,7 +185,7 @@
                 [processingLogs appendString:@"✓ No IRS found, using default processing\n"];
                 // default behaviour (copy)
                 command = [NSString stringWithFormat:
-                           @"-i \"%@\" -filter_complex \"[0:a]asetrate=44100*1.04,aresample=44100,atempo=0.96,pan=stereo|c0<c0|c1<c1,aecho=0.8:0.88:60:0.4\" -c:a aac -b:a 192k \"%@\"",
+                           @"-i \"%@\" -filter_complex \"[0:a]asetrate=44100*1.04,aresample=44100,atempo=0.96\" -c:a aac -b:a 192k \"%@\"",
                            audioURL, destinationURL];
             }
         }
