@@ -23,9 +23,9 @@
         [self setActive];
     });
 
-    // self.hud = [MBProgressHUD showHUDAddedTo:[UIApplication sharedApplication].keyWindow animated:YES];
-    // self.hud.mode = MBProgressHUDModeAnnularDeterminate;
-    // self.hud.label.text = LOC(@"DOWNLOADING");
+    self.hud = [MBProgressHUD showHUDAddedTo:[UIApplication sharedApplication].keyWindow animated:YES];
+    self.hud.mode = MBProgressHUDModeAnnularDeterminate;
+    self.hud.label.text = LOC(@"DOWNLOADING");
 
     NSURL *documentsURL = [[[NSFileManager defaultManager] URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask] lastObject];
     NSURL *destinationURL = [documentsURL URLByAppendingPathComponent:[NSString stringWithFormat:@"%@.m4a", self.tempName]];
@@ -88,9 +88,21 @@
 
         NSLog(@"Impulse path checked: %@, exists: %@", impulsePath, hasImpulse ? @"YES" : @"NO");
         [processingLogs appendFormat:@"Impulse checked: %@ (exists: %@)\n", impulsePath, hasImpulse ? @"YES" : @"NO"];
-        self.hud = [MBProgressHUD showHUDAddedTo:[UIApplication sharedApplication].keyWindow animated:YES];
-        self.hud.mode = MBProgressHUDModeAnnularDeterminate;
-        self.hud.label.text = LOC(@"PATH",impulsePath);
+
+        // Log impulse path to HUD for verification
+        dispatch_async(dispatch_get_main_queue(), ^{
+            NSMutableString *pathInfo = [NSMutableString string];
+            [pathInfo appendString:@"=== IMPULSE PATH VERIFICATION ===\n\n"];
+            [pathInfo appendFormat:@"Selected Path:\n%@\n\n", impulsePath ?: @"NOT FOUND"];
+            [pathInfo appendFormat:@"Exists: %@\n\n", hasImpulse ? @"YES ✓" : @"NO ✗"];
+            [pathInfo appendString:@"Checked Paths:\n"];
+            for (NSString *checkedPath in impulsePathsChecked) {
+                NSFileManager *fm = [NSFileManager defaultManager];
+                BOOL exists = [fm fileExistsAtPath:checkedPath];
+                [pathInfo appendFormat:@"%@\n(%s)\n\n", checkedPath, exists ? "EXISTS" : "NOT FOUND"];
+            }
+            self.hud.label.text = pathInfo;
+        });
 
         NSString *command;
         NSString *irsPath = nil;
@@ -98,9 +110,6 @@
         if (hasImpulse) {
             NSLog(@"DEBUG: Using impulse file convolution with path: %@", impulsePath);
             [processingLogs appendFormat:@"Using impulse convolution: %@\n", impulsePath];
-            self.hud = [MBProgressHUD showHUDAddedTo:[UIApplication sharedApplication].keyWindow animated:YES];
-            self.hud.mode = MBProgressHUDModeAnnularDeterminate;
-            self.hud.label.text = LOC(@"PATH",impulsePath);
             // apply provided afir convolution chain (re-encode to AAC)
             // uses the filter chain you provided: asetrate/aresample/atempo -> afir
             command = [NSString stringWithFormat:
@@ -162,11 +171,6 @@
             } else {
                 NSLog(@"DEBUG: No IRS file found, using default processing");
                 [processingLogs appendString:@"✓ No IRS found, using default processing\n"];
-
-                self.hud = [MBProgressHUD showHUDAddedTo:[UIApplication sharedApplication].keyWindow animated:YES];
-                self.hud.mode = MBProgressHUDModeAnnularDeterminate;
-                self.hud.label.text = LOC(@"PATH",impulsePath);
-
                 // default behaviour (copy)
                 command = [NSString stringWithFormat:
                            @"-i \"%@\" -filter_complex \"[0:a]asetrate=44100*1.04,aresample=44100,atempo=0.96,pan=stereo|c0<c0|c1<c1,aecho=0.8:0.88:60:0.4\" -c:a aac -b:a 192k \"%@\"",
