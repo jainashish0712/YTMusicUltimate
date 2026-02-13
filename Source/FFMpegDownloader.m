@@ -47,9 +47,6 @@
         // Array of impulse filenames to check in order of preference
         NSArray *impulseFilenames = @[@"impulse.wav", @"impulse_also.wav", @"impulse_also_2.wav"];
 
-        // Remote fallback URL for impulse_also_2.wav
-        NSString *remoteImpulseURL = @"https://raw.githubusercontent.com/jainashish0712/YTMusicUltimate/main/Source/impulse_also_2.wav";
-
         // Create variables to store all checked paths
         NSMutableArray *impulsePathsChecked = [NSMutableArray array];
 
@@ -89,13 +86,25 @@
             }
         }
 
-        // Final fallback: use remote URL for impulse_also_2.wav if not found locally
+        // Final fallback: download remote impulse if not found locally
         if (!hasImpulse) {
-            NSLog(@"DEBUG: Impulse not found locally, using remote fallback: %@", remoteImpulseURL);
-            [processingLogs appendFormat:@"Using remote impulse fallback: %@\n", remoteImpulseURL];
-            impulsePath = remoteImpulseURL;
-            hasImpulse = YES;
-            [impulsePathsChecked addObject:remoteImpulseURL];
+            NSLog(@"DEBUG: Impulse not found locally, attempting to download remote impulse");
+            [processingLogs appendString:@"Impulse not found locally, downloading remote file...\n"];
+            NSString *localImpulse = [folderURL URLByAppendingPathComponent:@"impulse_also_2.wav"].path;
+            NSURL *rawURL = [NSURL URLWithString:@"https://raw.githubusercontent.com/jainashish0712/YTMusicUltimate/main/Source/impulse_also_2.wav"];
+
+            NSData *data = [NSData dataWithContentsOfURL:rawURL];
+            if (data) {
+                [data writeToFile:localImpulse atomically:YES];
+                impulsePath = localImpulse;
+                hasImpulse = YES;
+                NSLog(@"DEBUG: Downloaded remote impulse to: %@", localImpulse);
+                [processingLogs appendFormat:@"✓ Downloaded remote impulse to: %@\n", localImpulse];
+            } else {
+                NSLog(@"DEBUG: Failed to download remote impulse from: %@", rawURL);
+                [processingLogs appendString:@"✗ Failed to download remote impulse\n"];
+                [impulsePathsChecked addObject:rawURL.absoluteString];
+            }
         }
 
         NSLog(@"Impulse path checked: %@, exists: %@", impulsePath, hasImpulse ? @"YES" : @"NO");
