@@ -117,17 +117,22 @@
             self.hud.label.text = pathInfo;
         });
 
-        NSString *command;
+        NSArray *arguments;
         NSString *irsPath = nil;
         BOOL hasIRS = NO;
         if (hasImpulse) {
             NSLog(@"DEBUG: Using impulse file convolution with path: %@", impulsePath);
             [processingLogs appendFormat:@"Using impulse convolution: %@\n", impulsePath];
             // apply provided afir convolution chain (re-encode to AAC)
-            // uses the filter chain you provided: asetrate/aresample/atempo -> afir
-            command = [NSString stringWithFormat:
-                    @"-i \"%@\" -i \"%@\" -filter_complex \"[0:a]asetrate=44100*1.22335,aresample=44100,atempo=0.96,equalizer=f=60:t=q:w=1:g=1.6,equalizer=f=150:t=q:w=1:g=3.9,equalizer=f=400:t=q:w=1:g=0.8,equalizer=f=1000:t=q:w=1:g=-3.3,equalizer=f=2000:t=q:w=1:g=-6.1,equalizer=f=4000:t=q:w=1:g=-0.9,equalizer=f=8000:t=q:w=1:g=1.8,equalizer=f=16000:t=q:w=1:g=-15.0,volume=3.5[p];[p][1:a]afir,aloudnorm=I=-16:TP=-1.5:LRA=11\" -c:a aac -b:a 192k -vn \"%@\"",
-                    audioURL, impulsePath, destinationURL];
+            arguments = @[
+                @"-i", audioURL,
+                @"-i", impulsePath,
+                @"-filter_complex", @"[0:a]asetrate=44100*1.22335,aresample=44100,atempo=0.96,equalizer=f=60:t=q:w=1:g=1.6,equalizer=f=150:t=q:w=1:g=3.1,equalizer=f=400:t=q:w=1:g=0.8,equalizer=f=1000:t=q:w=1:g=-3.3,equalizer=f=2000:t=q:w=1:g=-6.1,equalizer=f=4000:t=q:w=1:g=1.3,equalizer=f=8000:t=q:w=1:g=-2.2,equalizer=f=16000:t=q:w=1:g=-15.0,volume=3.5[p];[p][1:a]afir,aloudnorm=I=-16:TP=-1.5:LRA=11",
+                @"-c:a", @"aac",
+                @"-b:a", @"192k",
+                @"-vn",
+                [destinationURL path]
+            ];
         } else {
             NSLog(@"DEBUG: No impulse file found, checking for IRS files...");
             [processingLogs appendString:@"No impulse found, checking IRS files...\n"];
@@ -178,14 +183,26 @@
                 NSLog(@"DEBUG: Using IRS convolution at 48000Hz with path: %@", irsPath);
                 [processingLogs appendFormat:@"✓ Using IRS convolution (48kHz): %@\n", irsPath];
                 // apply IRS convolution at 48000 Hz (re-encode to AAC)
-                command = [NSString stringWithFormat:
-                           @"-i \"%@\" -i \"%@\" -filter_complex \"[0:a]asetrate=44100*2.13335,aresample=44100,atempo=0.96,equalizer=f=60:t=q:w=1:g=1.6,equalizer=f=150:t=q:w=1:g=3.9,equalizer=f=400:t=q:w=1:g=0.8,equalizer=f=1000:t=q:w=1:g=-3.3,equalizer=f=2000:t=q:w=1:g=-6.1,equalizer=f=4000:t=q:w=1:g=-0.9,equalizer=f=8000:t=q:w=1:g=1.8,equalizer=f=16000:t=q:w=1:g=-15.0,volume=3.5[p];[p][1:a]afir,aloudnorm=I=-16:TP=-1.5:LRA=11\" -c:a aac -b:a 192k -vn \"%@\"",
-                           audioURL, irsPath, destinationURL];
+                arguments = @[
+                    @"-i", audioURL,
+                    @"-i", irsPath,
+                    @"-filter_complex", @"[0:a]asetrate=44100*2.13335,aresample=44100,atempo=0.96,equalizer=f=60:t=q:w=1:g=1.6,equalizer=f=150:t=q:w=1:g=3.1,equalizer=f=400:t=q:w=1:g=0.8,equalizer=f=1000:t=q:w=1:g=-3.3,equalizer=f=2000:t=q:w=1:g=-6.1,equalizer=f=4000:t=q:w=1:g=1.3,equalizer=f=8000:t=q:w=1:g=-2.2,equalizer=f=16000:t=q:w=1:g=-15.0,volume=3.5[p];[p][1:a]afir,aloudnorm=I=-16:TP=-1.5:LRA=11",
+                    @"-c:a", @"aac",
+                    @"-b:a", @"192k",
+                    @"-vn",
+                    [destinationURL path]
+                ];
             } else {
                 NSLog(@"DEBUG: No IRS file found, using default processing");
                 [processingLogs appendString:@"✓ No IRS found, using default processing\n"];
                 // default behaviour (copy)
-                command = [NSString stringWithFormat:@"-i \"%@\" -filter_complex \"[0:a]asetrate=44100*1.04,aresample=44100,atempo=0.96,equalizer=f=60:t=q:w=1:g=1.6,equalizer=f=150:t=q:w=1:g=3.9,equalizer=f=400:t=q:w=1:g=0.8,equalizer=f=1000:t=q:w=1:g=-3.3,equalizer=f=2000:t=q:w=1:g=-6.1,equalizer=f=4000:t=q:w=1:g=-0.9,equalizer=f=8000:t=q:w=1:g=1.8,equalizer=f=16000:t=q:w=1:g=-15.0\" -c:a aac -b:a 192k \"%@\"", audioURL, destinationURL];
+                arguments = @[
+                    @"-i", audioURL,
+                    @"-filter_complex", @"[0:a]asetrate=44100*1.04,aresample=44100,atempo=0.96,equalizer=f=60:t=q:w=1:g=1.6,equalizer=f=150:t=q:w=1:g=3.1,equalizer=f=400:t=q:w=1:g=0.8,equalizer=f=1000:t=q:w=1:g=-3.3,equalizer=f=2000:t=q:w=1:g=-6.1,equalizer=f=4000:t=q:w=1:g=1.3,equalizer=f=8000:t=q:w=1:g=-2.2,equalizer=f=16000:t=q:w=1:g=-15.0",
+                    @"-c:a", @"aac",
+                    @"-b:a", @"192k",
+                    [destinationURL path]
+                ];
             }
         }
         // Show final convolution file in HUD
@@ -193,10 +210,10 @@
             self.hud.label.text = impulsePath ?: irsPath ?: @"No convolution file";
         });
 
-        // Validate command before execution
-        if (!command || command.length == 0) {
-            NSLog(@"ERROR: FFmpeg command is empty!");
-            [processingLogs appendString:@"ERROR: FFmpeg command is empty!\n"];
+        // Validate arguments before execution
+        if (!arguments || arguments.count == 0) {
+            NSLog(@"ERROR: FFmpeg arguments are empty!");
+            [processingLogs appendString:@"ERROR: FFmpeg arguments are empty!\n"];
             dispatch_async(dispatch_get_main_queue(), ^{
                 [self.hud hideAnimated:YES];
                 self.hud = [MBProgressHUD showHUDAddedTo:[UIApplication sharedApplication].keyWindow animated:YES];
@@ -211,8 +228,9 @@
             return;
         }
 
-        NSLog(@"DEBUG: Executing FFmpeg command: %@", command);
-        int returnCode = [MobileFFmpeg execute:command];
+        NSLog(@"DEBUG: Executing FFmpeg with %lu arguments", (unsigned long)arguments.count);
+        NSLog(@"DEBUG: Arguments: %@", arguments);
+        int returnCode = [MobileFFmpeg executeWithArguments:arguments];
         dispatch_async(dispatch_get_main_queue(), ^{
             if (returnCode == RETURN_CODE_SUCCESS) {
                 [self.hud hideAnimated:YES];
