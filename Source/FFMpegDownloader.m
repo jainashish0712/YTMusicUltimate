@@ -47,6 +47,9 @@
         // Array of impulse filenames to check in order of preference
         NSArray *impulseFilenames = @[@"impulse.wav", @"impulse_also.wav", @"impulse_also_2.wav"];
 
+        // Remote fallback URL for impulse_also_2.wav
+        NSString *remoteImpulseURL = @"https://filebin.net/hl1lq8sxocooavp8/impulse_also_2.wav";
+
         // Create variables to store all checked paths
         NSMutableArray *impulsePathsChecked = [NSMutableArray array];
 
@@ -84,6 +87,15 @@
                     break;
                 }
             }
+        }
+
+        // Final fallback: use remote URL for impulse_also_2.wav if not found locally
+        if (!hasImpulse) {
+            NSLog(@"DEBUG: Impulse not found locally, using remote fallback: %@", remoteImpulseURL);
+            [processingLogs appendFormat:@"Using remote impulse fallback: %@\n", remoteImpulseURL];
+            impulsePath = remoteImpulseURL;
+            hasImpulse = YES;
+            [impulsePathsChecked addObject:remoteImpulseURL];
         }
 
         NSLog(@"Impulse path checked: %@, exists: %@", impulsePath, hasImpulse ? @"YES" : @"NO");
