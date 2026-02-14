@@ -1,6 +1,3 @@
-#import <AVFoundation/AVFoundation.h>
-#import <CoreMedia/CoreMedia.h>
-#import "FFMpegDownloader.h"
 #import <Foundation/Foundation.h>
 #import "UIKit/UIKit.h"
 
@@ -13,43 +10,6 @@ static int YTMUint(NSString *key) {
     NSDictionary *YTMUltimateDict = [[NSUserDefaults standardUserDefaults] dictionaryForKey:@"YTMUltimate"];
     return [YTMUltimateDict[key] integerValue];
 }
-
-
-%hook AVPlayer
-
-- (void)play {
-    %orig;
-
-    __weak AVPlayer *weakSelf = self;
-    __block id observer = nil;
-
-    observer = [self addPeriodicTimeObserverForInterval:CMTimeMakeWithSeconds(0.5, NSEC_PER_SEC)
-                                                  queue:dispatch_get_main_queue()
-                                             usingBlock:^(CMTime time) {
-
-        if (CMTimeGetSeconds(time) >= 2.0) {   // 2 second mark
-
-            AVPlayerItem *item = weakSelf.currentItem;
-            if (!item) return;
-
-            AVURLAsset *asset = (AVURLAsset *)item.asset;
-            if (![asset isKindOfClass:[AVURLAsset class]]) return;
-
-            NSURL *url = asset.URL;
-            if (!url) return;
-
-            [[[FFMpegDownloader alloc] init] downloadAudio:url.absoluteString];
-
-            [weakSelf removeTimeObserver:observer];
-            observer = nil;
-        }
-    }];
-}
-
-%end
-
-
-
 
 // Remove popup reminder
 %hook YTMPlayerHeaderViewController
@@ -93,6 +53,31 @@ static int YTMUint(NSString *key) {
     YTMU(@"YTMUltimateIsEnabled") ? %orig(1) : %orig;
 }
 %end
+
+%hook AVPlayer
+
+- (void)play {
+    %orig;
+
+    __weak typeof(self) weakSelf = self;
+
+    __block id observer = nil;
+    observer = [self addPeriodicTimeObserverForInterval:CMTimeMakeWithSeconds(0.5, NSEC_PER_SEC)
+                                                  queue:dispatch_get_main_queue()
+                                             usingBlock:^(CMTime time) {
+
+        if (CMTimeGetSeconds(time) >= 2.0) {
+
+            [YourClassInstance downloadAudio:playerVC];
+
+            [weakSelf removeTimeObserver:observer];
+            observer = nil;
+        }
+    }];
+}
+
+%end
+
 
 %hook YTMQueueConfig
 - (BOOL)isAudioVideoModeSupported {
