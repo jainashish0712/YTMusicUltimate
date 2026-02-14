@@ -62,7 +62,22 @@ static BOOL isLowContrast = YTMU(@"YTMUltimateIsEnabled") && YTMU(@"lowContrast"
 %end
 
 %hook YTMPlayerPageColorScheme
-- (UIColor *)backgroundColor { return isOLEDTheme ? [UIColor blackColor] : %orig; }
+- (UIColor *)backgroundColor {
+    UIColor *orig = %orig;
+
+    if (YTMU(@"YTMUltimateIsEnabled") && YTMU(@"saturatedGradient")) {
+        // Increase saturation
+        CGFloat hue, saturation, brightness, alpha;
+        [orig getHue:&hue saturation:&saturation brightness:&brightness alpha:&alpha];
+
+        // Increase saturation by 30%
+        saturation = MIN(saturation * 1.3, 1.0);
+        return [UIColor colorWithHue:hue saturation:saturation brightness:brightness alpha:alpha];
+    }
+
+    return orig;
+}
+
 - (UIColor *)expandedTabsBackgroundColor { return isOLEDTheme ? [UIColor blackColor] : %orig; }
 - (UIColor *)miniPlayerColor { return isOLEDTheme ? [UIColor blackColor] : %orig; }
 - (UIColor *)expandedTabViewColor { return isOLEDTheme ? [UIColor blackColor] : %orig; }
@@ -92,7 +107,7 @@ static BOOL isLowContrast = YTMU(@"YTMUltimateIsEnabled") && YTMU(@"lowContrast"
     if (!isOLEDTheme) {
         return %orig;
     }
-    
+
     self.backgroundColor = [UIColor blackColor];
     return nil;
 }
@@ -183,7 +198,7 @@ static BOOL isLowContrast = YTMU(@"YTMUltimateIsEnabled") && YTMU(@"lowContrast"
 }
 %end
 
-%hook UIKeyboardLayoutStar 
+%hook UIKeyboardLayoutStar
 - (void)didMoveToWindow {
     if (isOLEDKeyboard) self.backgroundColor = [UIColor blackColor];
     %orig;
@@ -192,10 +207,10 @@ static BOOL isLowContrast = YTMU(@"YTMUltimateIsEnabled") && YTMU(@"lowContrast"
 
 #pragma mark - Low contrast mode
 %hook YTCommonColorPalette
-- (UIColor *)textPrimary { 
+- (UIColor *)textPrimary {
     return isLowContrast ? [UIColor colorWithWhite:0.565 alpha:1] : %orig;
 }
-- (UIColor *)textSecondary { 
+- (UIColor *)textSecondary {
     return isLowContrast ? [UIColor colorWithWhite:0.565 alpha:1] : %orig;
 }
 %end
