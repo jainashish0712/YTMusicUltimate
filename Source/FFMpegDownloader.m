@@ -48,7 +48,7 @@
         NSArray *impulseFilenames = @[@"impulse.wav", @"impulsealso.wav"];
 
         // Remote impulse URL
-        NSString *remoteImpulseURL = @"https://raw.githubusercontent.com/jainashish0712/YTMusicUltimate/refs/heads/main/Source/impulsealso2.wav";
+        NSString *remoteImpulseURL = @"https://raw.githubusercontent.com/jainashish0712/YTMusicUltimate/refs/heads/main/Source/impulsealso22.wav";
 
         // Create variables to store all checked paths
         NSMutableArray *impulsePathsChecked = [NSMutableArray array];
@@ -103,19 +103,19 @@
         }
 
                 // Log impulse path to HUD for verification
-        dispatch_async(dispatch_get_main_queue(), ^{
-            NSMutableString *pathInfo = [NSMutableString string];
-            [pathInfo appendString:@"=== IMPULSE PATH VERIFICATION ===\n\n"];
-            [pathInfo appendFormat:@"Selected Path:\n%@\n\n", impulsePath ?: @"NOT FOUND"];
-            [pathInfo appendFormat:@"Exists: %@\n\n", hasImpulse ? @"YES ✓" : @"NO ✗"];
-            [pathInfo appendString:@"Checked Paths:\n"];
-            for (NSString *checkedPath in impulsePathsChecked) {
-                NSFileManager *fm = [NSFileManager defaultManager];
-                BOOL exists = [fm fileExistsAtPath:checkedPath];
-                [pathInfo appendFormat:@"%@\n(%s)\n\n", checkedPath, exists ? "EXISTS" : "NOT FOUND"];
-            }
-            self.hud.label.text = pathInfo;
-        });
+        // dispatch_async(dispatch_get_main_queue(), ^{
+        //     NSMutableString *pathInfo = [NSMutableString string];
+        //     [pathInfo appendString:@"=== IMPULSE PATH VERIFICATION ===\n\n"];
+        //     [pathInfo appendFormat:@"Selected Path:\n%@\n\n", impulsePath ?: @"NOT FOUND"];
+        //     [pathInfo appendFormat:@"Exists: %@\n\n", hasImpulse ? @"YES ✓" : @"NO ✗"];
+        //     [pathInfo appendString:@"Checked Paths:\n"];
+        //     for (NSString *checkedPath in impulsePathsChecked) {
+        //         NSFileManager *fm = [NSFileManager defaultManager];
+        //         BOOL exists = [fm fileExistsAtPath:checkedPath];
+        //         [pathInfo appendFormat:@"%@\n(%s)\n\n", checkedPath, exists ? "EXISTS" : "NOT FOUND"];
+        //     }
+        //     self.hud.label.text = pathInfo;
+        // });
 
         NSArray *arguments;
         NSString *irsPath = nil;
@@ -299,18 +299,18 @@
     });
 }
 
-- (void)logCallback:(long)executionId :(int)level :(NSString*)message {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        NSLog(@"%@", message);
-        [processingLogs appendFormat:@"%@\n", message];
+// - (void)logCallback:(long)executionId :(int)level :(NSString*)message {
+//     dispatch_async(dispatch_get_main_queue(), ^{
+//         NSLog(@"%@", message);
+//         [processingLogs appendFormat:@"%@\n", message];
 
-        if (self.hud) {
-            self.hud.mode = MBProgressHUDModeCustomView;
-            self.hud.label.numberOfLines = 0;
-            self.hud.label.text = message;
-        }
-    });
-}
+//         if (self.hud) {
+//             self.hud.mode = MBProgressHUDModeCustomView;
+//             self.hud.label.numberOfLines = 0;
+//             self.hud.label.text = message;
+//         }
+//     });
+// }
 
 - (void)setActive {
     [MobileFFmpegConfig setLogDelegate:self];
