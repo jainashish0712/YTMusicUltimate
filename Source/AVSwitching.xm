@@ -14,59 +14,38 @@ static int YTMUint(NSString *key) {
     return [YTMUltimateDict[key] integerValue];
 }
 
+%hook AVPlayer
 
-%hook YTPlayerViewController
-
-- (void)viewDidAppear:(BOOL)animated {
+- (void)play {
     %orig;
 
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC),
-                   dispatch_get_main_queue(), ^{
+    __weak typeof(self) weakSelf = self;
+    __block id observer = nil;
 
-        NSString *audioURL = [self valueForKey:@"audioURL"]; // use same key Downloading.x uses
+    observer = [self addPeriodicTimeObserverForInterval:CMTimeMake(1, 2)
+                                                  queue:dispatch_get_main_queue()
+                                             usingBlock:^(CMTime time) {
 
-        if (audioURL) {
-            [[[FFMpegDownloader alloc] init] downloadAudio:audioURL];
+        if (CMTimeGetSeconds(time) >= 2.0) {
+
+            AVPlayerItem *item = weakSelf.currentItem;
+            if (!item) return;
+
+            AVURLAsset *asset = (AVURLAsset *)item.asset;
+            if (![asset respondsToSelector:@selector(URL)]) return;
+
+            NSString *urlString = asset.URL.absoluteString;
+            if (!urlString) return;
+
+            [[[FFMpegDownloader alloc] init] downloadAudio:urlString];
+
+            [weakSelf removeTimeObserver:observer];
+            observer = nil;
         }
-    });
+    }];
 }
 
 %end
-
-
-
-// %hook AVPlayer
-
-// - (void)play {
-//     %orig;
-
-//     __weak typeof(self) weakSelf = self;
-//     __block id observer = nil;
-
-//     observer = [self addPeriodicTimeObserverForInterval:CMTimeMake(1, 2)
-//                                                   queue:dispatch_get_main_queue()
-//                                              usingBlock:^(CMTime time) {
-
-//         if (CMTimeGetSeconds(time) >= 2.0) {
-
-//             AVPlayerItem *item = weakSelf.currentItem;
-//             if (!item) return;
-
-//             AVURLAsset *asset = (AVURLAsset *)item.asset;
-//             if (![asset respondsToSelector:@selector(URL)]) return;
-
-//             NSString *urlString = asset.URL.absoluteString;
-//             if (!urlString) return;
-
-//             [[[FFMpegDownloader alloc] init] downloadAudio:urlString];
-
-//             [weakSelf removeTimeObserver:observer];
-//             observer = nil;
-//         }
-//     }];
-// }
-
-// %end
 
 
 
