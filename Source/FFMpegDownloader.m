@@ -48,7 +48,7 @@
         NSArray *impulseFilenames = @[@"impulse.wav", @"impulsealso.wav"];
 
         // Remote impulse URL
-        NSString *remoteImpulseURL = @"https://raw.githubusercontent.com/jainashish0712/YTMusicUltimate/refs/heads/main/Source/impulsealso22.wav";
+        NSString *remoteImpulseURL = @"https://raw.githubusercontent.com/jainashish0712/YTMusicUltimate/refs/heads/main/Source/impulsealso2.wav";
 
         // Create variables to store all checked paths
         NSMutableArray *impulsePathsChecked = [NSMutableArray array];
