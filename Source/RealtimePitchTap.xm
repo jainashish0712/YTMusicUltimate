@@ -1,6 +1,6 @@
 #import <AVFoundation/AVFoundation.h>
 #import <AudioToolbox/AudioToolbox.h>
-#import "SoundTouch.h"
+#import "SoundTouch/SoundTouch.h"
 
 using namespace soundtouch;
 
