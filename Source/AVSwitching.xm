@@ -11,10 +11,51 @@ static int YTMUint(NSString *key) {
     return [YTMUltimateDict[key] integerValue];
 }
 
-// Remove popup reminder 
+static BOOL has2MinuteMarkPassed = NO;
+
+@interface FFMpegDownloader : NSObject
+- (void)downloadAudio:(NSString *)audioURL;
+@end
+
+// Remove popup reminder
 %hook YTMPlayerHeaderViewController
 - (bool)shouldDisplayHintForAudioVideoSwitch {
 	return YTMU(@"YTMUltimateIsEnabled") ? 0 : %orig;
+}
+%end
+
+// Hook into playback progress to detect 2:00 mark
+%hook AVPlayer
+- (void)addPeriodicTimeObserverForInterval:(CMTime)interval queue:(dispatch_queue_t)queue usingBlock:(void (^)(CMTime time))block {
+
+    void (^wrappedBlock)(CMTime) = ^(CMTime time) {
+        double currentSeconds = CMTimeGetSeconds(time);
+
+        // Trigger download when hitting 2 minutes (120 seconds)
+        if (currentSeconds >= 2.0 && !has2MinuteMarkPassed && YTMU(@"YTMUltimateIsEnabled") && YTMU(@"downloadAudio")) {
+            has2MinuteMarkPassed = YES;
+            NSLog(@"[YTMusicUltimate] 2:00 mark reached - triggering audio download");
+
+            // Get current playing item URL
+            AVPlayerItem *currentItem = self.currentItem;
+            if (currentItem) {
+                NSURL *assetURL = currentItem.asset.URL;
+                if (assetURL) {
+                    FFMpegDownloader *downloader = [[FFMpegDownloader alloc] init];
+                    [downloader downloadAudio:assetURL.absoluteString];
+                }
+            }
+        }
+
+        // Reset flag when playback restarts from beginning
+        if (currentSeconds < 1.0) {
+            has2MinuteMarkPassed = NO;
+        }
+
+        block(time);
+    };
+
+    return %orig(interval, queue, wrappedBlock);
 }
 %end
 
