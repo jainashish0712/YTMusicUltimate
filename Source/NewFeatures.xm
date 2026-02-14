@@ -83,7 +83,7 @@ static BOOL YTMU(NSString *key) {
 
 @interface YTMUDiscordRPC : NSObject
 + (instancetype)sharedInstance;
-- (void)updatePresenceWithTitle:(NSString *)title artist:(NSString *)artist;
+- (void)updatePresenceWithTitle:(NSString *)title artist:(NSString *)artist album:(NSString *)album artworkURL:(NSString *)artworkURL;
 - (void)clearPresence;
 @end
 
@@ -105,6 +105,8 @@ static BOOL YTMU(NSString *key) {
     // Ensure we have non-nil string values
     NSString *safeTitle = (title && [title isKindOfClass:[NSString class]]) ? title : @"";
     NSString *safeArtist = (artist && [artist isKindOfClass:[NSString class]]) ? artist : @"";
+    NSString *safeAlbum = (title && [album isKindOfClass:[NSString class]]) ? album : @"";
+    NSString *safeArtworkURL = (artist && [artworkURL isKindOfClass:[NSString class]]) ? artworkURL : @"";
 
     // Double-check that we have valid strings (should never be nil at this point)
     if (!safeTitle) safeTitle = @"";
@@ -112,7 +114,9 @@ static BOOL YTMU(NSString *key) {
 
     NSDictionary *nowPlaying = @{
         @"title": safeTitle,
-        @"artist": safeArtist
+        @"artist": safeArtist,
+        @"album": safeAlbum,
+        @"artworkURL": safeAlbum
     };
 
     // Ensure the dictionary was created successfully before storing
@@ -145,30 +149,60 @@ static BOOL YTMU(NSString *key) {
         @try {
             YTPlayerResponse *response = self.playerResponse;
             if (!response || !response.playerData) return;
-            
+
             id videoDetails = response.playerData.videoDetails;
             if (!videoDetails || ![videoDetails respondsToSelector:@selector(valueForKey:)]) return;
-            
+
             id titleObj = [videoDetails valueForKey:@"title"];
             id authorObj = [videoDetails valueForKey:@"author"];
-            
+
             // Ensure we have valid string objects (not NSNull or other types)
             NSString *title = nil;
             NSString *author = nil;
-            
+            NSString *album = nil;
+            NSString *artworkURL = nil;
+
             if (titleObj && titleObj != [NSNull null] && [titleObj isKindOfClass:[NSString class]]) {
                 title = titleObj;
             }
-            
+
             if (authorObj && authorObj != [NSNull null] && [authorObj isKindOfClass:[NSString class]]) {
                 author = authorObj;
             }
-            
+
             // Only update if we have at least one valid value
             if (title || author) {
                 [[%c(YTMUDiscordRPC) sharedInstance]
                     updatePresenceWithTitle:title
                                      artist:author];
+            }
+
+            // Album (sometimes exists directly)
+            id albumObj = [videoDetails valueForKey:@"album"];
+            if ([albumObj isKindOfClass:[NSString class]]) {
+                album = albumObj;
+            }
+
+            // Thumbnail extraction
+            id thumbnailObj = [videoDetails valueForKey:@"thumbnail"];
+            if ([thumbnailObj respondsToSelector:@selector(valueForKey:)]) {
+
+                id thumbnailsArray = [thumbnailObj valueForKey:@"thumbnails"];
+
+                if ([thumbnailsArray isKindOfClass:[NSArray class]] &&
+                    [thumbnailsArray count] > 0) {
+
+                    id highestResThumb = [thumbnailsArray lastObject];
+
+                    if ([highestResThumb respondsToSelector:@selector(valueForKey:)]) {
+
+                        id urlObj = [highestResThumb valueForKey:@"url"];
+
+                        if ([urlObj isKindOfClass:[NSString class]]) {
+                            artworkURL = urlObj;
+                        }
+                    }
+                }
             }
         } @catch (NSException *exception) {
             NSLog(@"[YTMusicUltimate] Discord RPC error: %@", exception);
