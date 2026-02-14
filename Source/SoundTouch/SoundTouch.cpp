@@ -183,7 +183,7 @@ void SoundTouch::clear()
 
 bool SoundTouch::setSetting(int settingId, int value)
 {
-    int samplerate;
+    // int samplerate;
 
     if (pTDStretch == NULL) return false;
 
