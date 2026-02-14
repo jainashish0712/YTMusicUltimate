@@ -1,4 +1,5 @@
 #import <Foundation/Foundation.h>
+#include <stdbool.h>
 
 static BOOL YTMU(NSString *key) {
     NSDictionary *YTMUltimateDict = [[NSUserDefaults standardUserDefaults] dictionaryForKey:@"YTMUltimate"];

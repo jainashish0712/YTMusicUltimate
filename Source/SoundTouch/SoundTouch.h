@@ -138,6 +138,14 @@ private:
     double tempo;
     double pitch;
     bool bSrateSet;
+    double virtualPitch;
+    double virtualRate;
+    double virtualTempo;
+    uint samplesExpectedOut;
+    uint samplesOutput;
+
+    class TDStretch *pTDStretch;
+    class RateTransposer *pRateTransposer;
 };
 
 }
