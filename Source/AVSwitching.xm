@@ -1,6 +1,4 @@
 #import <Foundation/Foundation.h>
-#import <AVFoundation/AVFoundation.h>
-#import <CoreMedia/CoreMedia.h>
 #import "UIKit/UIKit.h"
 
 static BOOL YTMU(NSString *key) {
