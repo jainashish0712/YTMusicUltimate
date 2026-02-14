@@ -129,6 +129,7 @@
                 @"-i", impulsePath,
                 @"-filter_complex", @"[0:a]asetrate=44100*1.04,aresample=44100,atempo=0.96,volume=3.5[p];[p][1:a]afir=dry=0.2:wet=0.8,loudnorm=I=-16:TP=-1.5:LRA=11",
                 @"-map_metadata", @"0",
+                @"-movflags", @"use_metadata_tags",
                 @"-map", @"0:a",           // audio from source
                 @"-map", @"0:v?",          // optional: copy cover art if present
                 @"-c:v", @"copy",          // copy cover without re-encoding
@@ -192,6 +193,7 @@
                     @"-i", irsPath,
                     @"-filter_complex", @"[0:a]asetrate=44100*1.04,aresample=44100,atempo=0.96,volume=3.5[p];[p][1:a]afir=dry=0.2:wet=0.8,loudnorm=I=-16:TP=-1.5:LRA=11",
                     @"-map_metadata", @"0",
+                    @"-movflags", @"use_metadata_tags",
                     @"-map", @"0:a",
                     @"-map", @"0:v?",
                     @"-c:v", @"copy",
@@ -208,6 +210,7 @@
                     @"-i", audioURL,
                     @"-af", @"asetrate=44100*1.04,aresample=44100,atempo=0.96",
                     @"-map_metadata", @"0",
+                    @"-movflags", @"use_metadata_tags",
                     @"-map", @"0:a",
                     @"-map", @"0:v?",
                     @"-c:v", @"copy",

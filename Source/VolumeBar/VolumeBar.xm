@@ -23,8 +23,11 @@ static BOOL volumeBar = YTMU(@"YTMUltimateIsEnabled") && YTMU(@"volBar");
     self = %orig;
 
     if (self && volumeBar) {
-        self.volumeBar = [[GSVolBar alloc] initWithFrame:CGRectMake(self.frame.size.width / 2 - (self.frame.size.width / 2) / 2, 0, self.frame.size.width / 2, 25)];
 
+        CGFloat barWidth = self.frame.size.width * 0.35;
+        CGFloat x = (self.frame.size.width - barWidth) / 2;
+
+        self.volumeBar = [[GSVolBar alloc] initWithFrame:CGRectMake(x, 0, barWidth, 25)];
         [self addSubview:self.volumeBar];
     }
 
@@ -35,9 +38,19 @@ static BOOL volumeBar = YTMU(@"YTMUltimateIsEnabled") && YTMU(@"volBar");
     %orig;
 
     if (volumeBar) {
-        self.volumeBar.frame = CGRectMake(self.frame.size.width / 2 - (self.frame.size.width / 2) / 2, CGRectGetMinY(self.tabView.frame) - 25, self.frame.size.width / 2, 25);
+
+        CGFloat barWidth = self.frame.size.width * 0.35;
+        CGFloat x = (self.frame.size.width - barWidth) / 2;
+
+        self.volumeBar.frame = CGRectMake(
+            x,
+            CGRectGetMinY(self.tabView.frame) - 10,
+            barWidth,
+            25
+        );
     }
 }
+
 
 - (void)updateColorsAfterLayoutChangeTo:(long long)arg1 {
     %orig;
