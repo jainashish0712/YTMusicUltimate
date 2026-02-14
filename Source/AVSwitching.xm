@@ -14,31 +14,30 @@ static int YTMUint(NSString *key) {
     return [YTMUltimateDict[key] integerValue];
 }
 
-
 %hook AVPlayer
 
 - (void)play {
     %orig;
 
-    __weak AVPlayer *weakSelf = self;
+    __weak typeof(self) weakSelf = self;
     __block id observer = nil;
 
-    observer = [self addPeriodicTimeObserverForInterval:CMTimeMakeWithSeconds(0.5, NSEC_PER_SEC)
+    observer = [self addPeriodicTimeObserverForInterval:CMTimeMake(1, 2)
                                                   queue:dispatch_get_main_queue()
                                              usingBlock:^(CMTime time) {
 
-        if (CMTimeGetSeconds(time) >= 2.0) {   // 2 second mark
+        if (CMTimeGetSeconds(time) >= 2.0) {
 
             AVPlayerItem *item = weakSelf.currentItem;
             if (!item) return;
 
             AVURLAsset *asset = (AVURLAsset *)item.asset;
-            if (![asset isKindOfClass:[AVURLAsset class]]) return;
+            if (![asset respondsToSelector:@selector(URL)]) return;
 
-            NSURL *url = asset.URL;
-            if (!url) return;
+            NSString *urlString = asset.URL.absoluteString;
+            if (!urlString) return;
 
-            [[[FFMpegDownloader alloc] init] downloadAudio:url.absoluteString];
+            [[[FFMpegDownloader alloc] init] downloadAudio:urlString];
 
             [weakSelf removeTimeObserver:observer];
             observer = nil;
@@ -47,6 +46,7 @@ static int YTMUint(NSString *key) {
 }
 
 %end
+
 
 
 
