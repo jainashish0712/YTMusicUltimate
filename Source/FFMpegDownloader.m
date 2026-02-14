@@ -103,19 +103,19 @@
         }
 
                 // Log impulse path to HUD for verification
-        // dispatch_async(dispatch_get_main_queue(), ^{
-        //     NSMutableString *pathInfo = [NSMutableString string];
-        //     [pathInfo appendString:@"=== IMPULSE PATH VERIFICATION ===\n\n"];
-        //     [pathInfo appendFormat:@"Selected Path:\n%@\n\n", impulsePath ?: @"NOT FOUND"];
-        //     [pathInfo appendFormat:@"Exists: %@\n\n", hasImpulse ? @"YES ✓" : @"NO ✗"];
-        //     [pathInfo appendString:@"Checked Paths:\n"];
-        //     for (NSString *checkedPath in impulsePathsChecked) {
-        //         NSFileManager *fm = [NSFileManager defaultManager];
-        //         BOOL exists = [fm fileExistsAtPath:checkedPath];
-        //         [pathInfo appendFormat:@"%@\n(%s)\n\n", checkedPath, exists ? "EXISTS" : "NOT FOUND"];
-        //     }
-        //     self.hud.label.text = pathInfo;
-        // });
+        dispatch_async(dispatch_get_main_queue(), ^{
+            NSMutableString *pathInfo = [NSMutableString string];
+            [pathInfo appendString:@"=== IMPULSE PATH VERIFICATION ===\n\n"];
+            [pathInfo appendFormat:@"Selected Path:\n%@\n\n", impulsePath ?: @"NOT FOUND"];
+            [pathInfo appendFormat:@"Exists: %@\n\n", hasImpulse ? @"YES ✓" : @"NO ✗"];
+            [pathInfo appendString:@"Checked Paths:\n"];
+            for (NSString *checkedPath in impulsePathsChecked) {
+                NSFileManager *fm = [NSFileManager defaultManager];
+                BOOL exists = [fm fileExistsAtPath:checkedPath];
+                [pathInfo appendFormat:@"%@\n(%s)\n\n", checkedPath, exists ? "EXISTS" : "NOT FOUND"];
+            }
+            self.hud.label.text = pathInfo;
+        });
 
         NSArray *arguments;
         NSString *irsPath = nil;
