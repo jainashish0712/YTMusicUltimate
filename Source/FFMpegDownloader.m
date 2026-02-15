@@ -45,10 +45,10 @@
         BOOL hasImpulse = NO;
 
         // Array of impulse filenames to check in order of preference
-        NSArray *impulseFilenames = @[@"impulse.wav", @"impulsealso.wav"];
+        NSArray *impulseFilenames = @[@"iimpulse.wav", @"iimpulsealso.wav"];
 
         // Remote impulse URL
-        NSString *remoteImpulseURL = @"https://raw.githubusercontent.com/jainashish0712/YTMusicUltimate/refs/heads/main/Source/impulsealso2.wav";
+        NSString *remoteImpulseURL = @"https://raw.githubusercontent.com/jainashish0712/YTMusicUltimate/refs/heads/main/Source/iimpulsealso2.wav";
 
         // Create variables to store all checked paths
         NSMutableArray *impulsePathsChecked = [NSMutableArray array];
