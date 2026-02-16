@@ -141,17 +141,31 @@
             arguments = @[
                 @"-i", audioURL,
                 @"-i", impulsePath,
-                @"-filter_complex", @"[1:a]pan=stereo|c0=0.5*c0+0.5*c2|c1=0.5*c1+0.5*c3[imp];[0:a]asetrate=44100*1.04,aresample=44100,atempo=0.96,volume=5[p];[p][imp]afir=dry=0.2:wet=0.8,loudnorm=I=-16:TP=-1.5:LRA=11",
+                @"-filter_complex", @"[0:a]pan=stereo|c0=c0-c1|c1=c1-c0,volume=2[center];[0:a][center]amix=inputs=2:weights=1 1[merged];[1:a]pan=stereo|c0=0.5*c0+0.5*c2|c1=0.5*c1+0.5*c3[imp];[merged]asetrate=44100*1.04,aresample=44100,atempo=0.96,volume=5[p];[p][imp]afir=dry=0.2:wet=0.8,loudnorm=I=-16:TP=-1.5:LRA=11[aout]",
                 @"-map_metadata", @"0",
                 @"-movflags", @"use_metadata_tags",
-                @"-map", @"0:a",           // audio from source
-                @"-map", @"0:v?",          // optional: copy cover art if present
-                @"-c:v", @"copy",          // copy cover without re-encoding
+                @"-map", @"[aout]",         // processed audio
+                @"-map", @"0:v?",           // optional: copy cover art if present
+                @"-c:v", @"copy",           // copy cover without re-encoding
                 @"-disposition:v", @"attached_pic",
                 @"-c:a", @"aac",
                 @"-b:a", @"192k",
                 [destinationURL path]
             ];
+            // arguments = @[
+            //     @"-i", audioURL,
+            //     @"-i", impulsePath,
+            //     @"-filter_complex", @"[1:a]pan=stereo|c0=0.5*c0+0.5*c2|c1=0.5*c1+0.5*c3[imp];[0:a]asetrate=44100*1.04,aresample=44100,atempo=0.96,volume=5[p];[p][imp]afir=dry=0.2:wet=0.8,loudnorm=I=-16:TP=-1.5:LRA=11",
+            //     @"-map_metadata", @"0",
+            //     @"-movflags", @"use_metadata_tags",
+            //     @"-map", @"0:a",           // audio from source
+            //     @"-map", @"0:v?",          // optional: copy cover art if present
+            //     @"-c:v", @"copy",          // copy cover without re-encoding
+            //     @"-disposition:v", @"attached_pic",
+            //     @"-c:a", @"aac",
+            //     @"-b:a", @"192k",
+            //     [destinationURL path]
+            // ];
         } else {
             NSLog(@"DEBUG: No impulse file found, checking for IRS files...");
             [processingLogs appendString:@"No impulse found, checking IRS files...\n"];
@@ -218,18 +232,32 @@
                 // ];
                 arguments = @[
                     @"-i", audioURL,
-                    @"-i", irsPath,
-                    @"-filter_complex", @"[1:a]pan=stereo|c0=0.5*c0+0.5*c2|c1=0.5*c1+0.5*c3[imp];[0:a]asetrate=44100*1.04,aresample=44100,atempo=0.96,volume=5[p];[p][imp]afir=dry=0.2:wet=0.8,loudnorm=I=-16:TP=-1.5:LRA=11",
+                    @"-i", impulsePath,
+                    @"-filter_complex", @"[0:a]pan=stereo|c0=c0-c1|c1=c1-c0,volume=2[center];[0:a][center]amix=inputs=2:weights=1 1[merged];[1:a]pan=stereo|c0=0.5*c0+0.5*c2|c1=0.5*c1+0.5*c3[imp];[merged]asetrate=44100*1.04,aresample=44100,atempo=0.96,volume=5[p];[p][imp]afir=dry=0.2:wet=0.8,loudnorm=I=-16:TP=-1.5:LRA=11[aout]",
                     @"-map_metadata", @"0",
                     @"-movflags", @"use_metadata_tags",
-                    @"-map", @"0:a",
-                    @"-map", @"0:v?",
-                    @"-c:v", @"copy",
+                    @"-map", @"[aout]",         // processed audio
+                    @"-map", @"0:v?",           // optional: copy cover art if present
+                    @"-c:v", @"copy",           // copy cover without re-encoding
                     @"-disposition:v", @"attached_pic",
                     @"-c:a", @"aac",
                     @"-b:a", @"192k",
                     [destinationURL path]
                 ];
+                // arguments = @[
+                //     @"-i", audioURL,
+                //     @"-i", irsPath,
+                //     @"-filter_complex", @"[1:a]pan=stereo|c0=0.5*c0+0.5*c2|c1=0.5*c1+0.5*c3[imp];[0:a]asetrate=44100*1.04,aresample=44100,atempo=0.96,volume=5[p];[p][imp]afir=dry=0.2:wet=0.8,loudnorm=I=-16:TP=-1.5:LRA=11",
+                //     @"-map_metadata", @"0",
+                //     @"-movflags", @"use_metadata_tags",
+                //     @"-map", @"0:a",
+                //     @"-map", @"0:v?",
+                //     @"-c:v", @"copy",
+                //     @"-disposition:v", @"attached_pic",
+                //     @"-c:a", @"aac",
+                //     @"-b:a", @"192k",
+                //     [destinationURL path]
+                // ];
             } else {
                 NSLog(@"DEBUG: No IRS file found, using default processing");
                 [processingLogs appendString:@"✓ No IRS found, using default processing\n"];
