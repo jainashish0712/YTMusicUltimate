@@ -97,8 +97,8 @@ static BOOL YTMU(NSString *key) {
 @interface YTMPlayerController : NSObject
 - (void)prepareForNextTrack;
 - (void)resetBufferState;
-@property (nonatomic, strong) id timeObserver;
-@property (nonatomic) BOOL has2SecondMarkPassed;
+// @property (nonatomic, strong) id timeObserver;
+// @property (nonatomic) BOOL has2SecondMarkPassed;
 @end
 
 %hook YTMPlayerController
@@ -482,67 +482,67 @@ static BOOL YTMU(NSString *key) {
 }
 %end
 
-#pragma mark - Auto-Download at 2-Second Mark
+// #pragma mark - Auto-Download at 2-Second Mark
 
-@interface YTMPlayerController : NSObject
-@property (nonatomic, strong) id timeObserver;
-@property (nonatomic) BOOL has2SecondMarkPassed;
-- (id)player;
-@end
+// @interface YTMPlayerController : NSObject
+// @property (nonatomic, strong) id timeObserver;
+// @property (nonatomic) BOOL has2SecondMarkPassed;
+// - (id)player;
+// @end
 
-%hook YTMPlayerController
-- (void)playbackController:(id)controller willStartPlayingVideo:(id)video {
-    %orig;
+// %hook YTMPlayerController
+// - (void)playbackController:(id)controller willStartPlayingVideo:(id)video {
+//     %orig;
 
-    if (YTMU(@"YTMUltimateIsEnabled") && YTMU(@"downloadAudio")) {
-        self.has2SecondMarkPassed = NO;
+//     if (YTMU(@"YTMUltimateIsEnabled") && YTMU(@"downloadAudio")) {
+//         self.has2SecondMarkPassed = NO;
 
-        // Remove old observer if exists
-        if (self.timeObserver) {
-            [[self player] removeTimeObserver:self.timeObserver];
-        }
+//         // Remove old observer if exists
+//         if (self.timeObserver) {
+//             [[self player] removeTimeObserver:self.timeObserver];
+//         }
 
-        // Add periodic time observer to check for 2-second mark
-        __weak typeof(self) weakSelf = self;
-        self.timeObserver = [[self player] addPeriodicTimeObserverForInterval:CMTimeMake(100, 1000)
-                                                                        queue:dispatch_get_main_queue()
-                                                                   usingBlock:^(CMTime time) {
-            __strong typeof(weakSelf) strongSelf = weakSelf;
-            if (!strongSelf) return;
+//         // Add periodic time observer to check for 2-second mark
+//         __weak typeof(self) weakSelf = self;
+//         self.timeObserver = [[self player] addPeriodicTimeObserverForInterval:CMTimeMake(100, 1000)
+//                                                                         queue:dispatch_get_main_queue()
+//                                                                    usingBlock:^(CMTime time) {
+//             __strong typeof(weakSelf) strongSelf = weakSelf;
+//             if (!strongSelf) return;
 
-            double currentTime = CMTimeGetSeconds(time);
+//             double currentTime = CMTimeGetSeconds(time);
 
-            // Trigger download when hitting 2-second mark (only once)
-            if (currentTime >= 2.0 && !strongSelf.has2SecondMarkPassed) {
-                strongSelf.has2SecondMarkPassed = YES;
+//             // Trigger download when hitting 2-second mark (only once)
+//             if (currentTime >= 2.0 && !strongSelf.has2SecondMarkPassed) {
+//                 strongSelf.has2SecondMarkPassed = YES;
 
-                // Get player view controller
-                UIViewController *vc = (UIViewController *)controller;
-                if ([vc isKindOfClass:%c(YTPlayerViewController)]) {
-                    YTPlayerViewController *playerVC = (YTPlayerViewController *)vc;
+//                 // Get player view controller
+//                 UIViewController *vc = (UIViewController *)controller;
+//                 if ([vc isKindOfClass:%c(YTPlayerViewController)]) {
+//                     YTPlayerViewController *playerVC = (YTPlayerViewController *)vc;
 
-                    // Trigger the download using Downloading.x method
-                    ELMTouchCommandPropertiesHandler *handler = [[ELMTouchCommandPropertiesHandler alloc] init];
-                    [handler downloadAudio:playerVC];
-                }
-            }
+//                     // Trigger the download using Downloading.x method
+//                     ELMTouchCommandPropertiesHandler *handler = [[ELMTouchCommandPropertiesHandler alloc] init];
+//                     [handler downloadAudio:playerVC];
+//                 }
+//             }
 
-            // Reset flag when playback restarts below 1 second
-            if (currentTime < 1.0) {
-                strongSelf.has2SecondMarkPassed = NO;
-            }
-        }];
-    }
-}
+//             // Reset flag when playback restarts below 1 second
+//             if (currentTime < 1.0) {
+//                 strongSelf.has2SecondMarkPassed = NO;
+//             }
+//         }];
+//     }
+// }
 
-- (void)playbackController:(id)controller didFinishPlayingVideo:(id)video {
-    %orig;
+// - (void)playbackController:(id)controller didFinishPlayingVideo:(id)video {
+//     %orig;
 
-    if (self.timeObserver) {
-        [[self player] removeTimeObserver:self.timeObserver];
-        self.timeObserver = nil;
-    }
-}
+//     if (self.timeObserver) {
+//         [[self player] removeTimeObserver:self.timeObserver];
+//         self.timeObserver = nil;
+//     }
+// }
 %end
 
 %ctor {
