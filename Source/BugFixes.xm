@@ -36,7 +36,7 @@ static BOOL YTMU(NSString *key) {
     // Check if this is a Recap-related command and allow it through
     if ([self browseEndpoint]) {
         NSString *browseId = [[self browseEndpoint] browseId];
-        if (browseId && ([browseId containsString:@"recap"] || 
+        if (browseId && ([browseId containsString:@"recap"] ||
                          [browseId containsString:@"Recap"] ||
                          [browseId containsString:@"FEmusic_recap"] ||
                          [browseId containsString:@"FEmusic_listening_review"])) {
@@ -44,7 +44,7 @@ static BOOL YTMU(NSString *key) {
             return;
         }
     }
-    
+
     if ([self urlEndpoint]) {
         NSURL *url = [[self urlEndpoint] url];
         NSString *urlString = [url absoluteString];
@@ -53,7 +53,7 @@ static BOOL YTMU(NSString *key) {
             return;
         }
     }
-    
+
     %orig;
 }
 %end
@@ -80,7 +80,7 @@ static BOOL YTMU(NSString *key) {
 - (BOOL)canNavigateToCommand:(YTICommand *)command {
     if ([command browseEndpoint]) {
         NSString *browseId = [[command browseEndpoint] browseId];
-        if (browseId && ([browseId containsString:@"recap"] || 
+        if (browseId && ([browseId containsString:@"recap"] ||
                          [browseId containsString:@"Recap"] ||
                          [browseId containsString:@"listening_review"])) {
             return YES;
@@ -97,12 +97,14 @@ static BOOL YTMU(NSString *key) {
 @interface YTMPlayerController : NSObject
 - (void)prepareForNextTrack;
 - (void)resetBufferState;
+@property (nonatomic, strong) id timeObserver;
+@property (nonatomic) BOOL has2SecondMarkPassed;
 @end
 
 %hook YTMPlayerController
 - (void)playbackController:(id)controller didFinishPlayingVideo:(id)video {
     %orig;
-    
+
     if (YTMU(@"YTMUltimateIsEnabled")) {
         // Reset buffer state before next track
         if ([self respondsToSelector:@selector(resetBufferState)]) {
@@ -126,12 +128,12 @@ static BOOL YTMU(NSString *key) {
 %hook YTMAudioSessionController
 - (void)handleInterruption:(NSNotification *)notification {
     %orig;
-    
+
     if (YTMU(@"YTMUltimateIsEnabled")) {
         NSDictionary *info = notification.userInfo;
         NSString *typeKey = @"AVAudioSessionInterruptionTypeKey";
         NSNumber *typeValue = info[typeKey];
-        
+
         if (typeValue) {
             NSUInteger type = [typeValue unsignedIntegerValue];
             // AVAudioSessionInterruptionTypeEnded = 1
@@ -233,14 +235,14 @@ static BOOL YTMU(NSString *key) {
 %hook YTMContentWarningViewController
 - (void)viewDidLoad {
     %orig;
-    
+
     if (YTMU(@"YTMUltimateIsEnabled") && YTMU(@"skipWarning")) {
         // Auto-dismiss after a short delay
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
             Class cls = object_getClass(self);
             SEL confirmSel = @selector(confirmButtonTapped:);
             SEL dismissSel = @selector(dismissViewControllerAnimated:completion:);
-            
+
             if (class_getInstanceMethod(cls, confirmSel)) {
                 ((void (*)(id, SEL, id))objc_msgSend)(self, confirmSel, nil);
             } else if (class_getInstanceMethod(cls, dismissSel)) {
@@ -262,7 +264,7 @@ static BOOL YTMU(NSString *key) {
         if (size.width <= 0 || size.height <= 0) {
             size = CGSizeMake(16, 9); // Default to 16:9
         }
-        
+
         // Ensure we don't crash on unusual aspect ratios
         CGFloat aspectRatio = size.width / size.height;
         if (isnan(aspectRatio) || isinf(aspectRatio)) {
@@ -296,7 +298,7 @@ static BOOL YTMU(NSString *key) {
     @try {
         if (YTMU(@"YTMUltimateIsEnabled") && YTMU(@"noAds")) {
             // Validate frame dimensions
-            if (CGRectIsEmpty(frame) || CGRectIsNull(frame) || 
+            if (CGRectIsEmpty(frame) || CGRectIsNull(frame) ||
                 isnan(frame.size.width) || isnan(frame.size.height) ||
                 frame.size.width <= 0 || frame.size.height <= 0) {
                 return; // Skip invalid frames
@@ -383,7 +385,7 @@ static BOOL YTMU(NSString *key) {
 %hook YTMAirPlayController
 - (void)startAirPlayWithRoute:(id)route {
     %orig;
-    
+
     if (YTMU(@"YTMUltimateIsEnabled") && YTMU(@"noAds")) {
         // Ensure ad blocking is active during AirPlay
         [[NSNotificationCenter defaultCenter] postNotificationName:@"YTMUDisableAdsNotification" object:nil];
@@ -477,6 +479,69 @@ static BOOL YTMU(NSString *key) {
         [[NSNotificationCenter defaultCenter] postNotificationName:@"YTMUDisableAdsNotification" object:nil];
     }
     return isExternal;
+}
+%end
+
+#pragma mark - Auto-Download at 2-Second Mark
+
+@interface YTMPlayerController : NSObject
+@property (nonatomic, strong) id timeObserver;
+@property (nonatomic) BOOL has2SecondMarkPassed;
+- (id)player;
+@end
+
+%hook YTMPlayerController
+- (void)playbackController:(id)controller willStartPlayingVideo:(id)video {
+    %orig;
+
+    if (YTMU(@"YTMUltimateIsEnabled") && YTMU(@"downloadAudio")) {
+        self.has2SecondMarkPassed = NO;
+
+        // Remove old observer if exists
+        if (self.timeObserver) {
+            [[self player] removeTimeObserver:self.timeObserver];
+        }
+
+        // Add periodic time observer to check for 2-second mark
+        __weak typeof(self) weakSelf = self;
+        self.timeObserver = [[self player] addPeriodicTimeObserverForInterval:CMTimeMake(100, 1000)
+                                                                        queue:dispatch_get_main_queue()
+                                                                   usingBlock:^(CMTime time) {
+            __strong typeof(weakSelf) strongSelf = weakSelf;
+            if (!strongSelf) return;
+
+            double currentTime = CMTimeGetSeconds(time);
+
+            // Trigger download when hitting 2-second mark (only once)
+            if (currentTime >= 2.0 && !strongSelf.has2SecondMarkPassed) {
+                strongSelf.has2SecondMarkPassed = YES;
+
+                // Get player view controller
+                UIViewController *vc = (UIViewController *)controller;
+                if ([vc isKindOfClass:%c(YTPlayerViewController)]) {
+                    YTPlayerViewController *playerVC = (YTPlayerViewController *)vc;
+
+                    // Trigger the download using Downloading.x method
+                    ELMTouchCommandPropertiesHandler *handler = [[ELMTouchCommandPropertiesHandler alloc] init];
+                    [handler downloadAudio:playerVC];
+                }
+            }
+
+            // Reset flag when playback restarts below 1 second
+            if (currentTime < 1.0) {
+                strongSelf.has2SecondMarkPassed = NO;
+            }
+        }];
+    }
+}
+
+- (void)playbackController:(id)controller didFinishPlayingVideo:(id)video {
+    %orig;
+
+    if (self.timeObserver) {
+        [[self player] removeTimeObserver:self.timeObserver];
+        self.timeObserver = nil;
+    }
 }
 %end
 

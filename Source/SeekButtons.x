@@ -8,7 +8,7 @@ static NSInteger seekTime() {
 
     if (YTMUltimateDict && YTMUltimateDict[@"seekTime"]) {
         NSInteger index = [YTMUltimateDict[@"seekTime"] integerValue];
-        NSArray *seekTimes = @[@0, @10, @20, @30, @60];
+        NSArray *seekTimes = @[@0, @5, @10, @20, @30, @60];
 
         return [seekTimes[index] integerValue];
     }
